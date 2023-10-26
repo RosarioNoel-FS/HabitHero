@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "68119956853",
+    "project_id": "habit-hero-ef682",
+    "storage_bucket": "habit-hero-ef682.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68119956853:android:b3bcf00d21696017a4173c",
+        "android_client_info": {
+          "package_name": "com.example.habithero"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "68119956853-r0jd6k9oab2g3kc5v9j9kpi8hfrdgkb1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.habithero",
+            "certificate_hash": "d1dc0da48f932d1a42cb09c5c4d378dc19d786bb"
+          }
+        },
+        {
+          "client_id": "68119956853-a0obubr8ge4acmrhmi9j277jh78a1tm0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQXiboWhwz_bComA1qGi_6MwXGEUqk25c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "68119956853-a0obubr8ge4acmrhmi9j277jh78a1tm0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
