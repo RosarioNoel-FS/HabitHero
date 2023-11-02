@@ -64,11 +64,21 @@ public class LandingActivity extends AppCompatActivity {
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        Toast.makeText(LandingActivity.this, "Successfully signed in", Toast.LENGTH_SHORT).show();
-                        startActivity(new Intent(LandingActivity.this, MainActivity.class));
+                        // Check if user is new or existing
+                        boolean isNewUser = task.getResult().getAdditionalUserInfo().isNewUser();
+                        if (isNewUser) {
+                            // Navigate to UsernameActivity for first-time users
+                            Toast.makeText(LandingActivity.this, "Welcome! Please set your username.", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(LandingActivity.this, UsernameActivity.class));
+                        } else {
+                            // Navigate to MainActivity for existing users
+                            Toast.makeText(LandingActivity.this, "Successfully signed in", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(LandingActivity.this, MainActivity.class));
+                        }
                     } else {
                         Toast.makeText(LandingActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
 }

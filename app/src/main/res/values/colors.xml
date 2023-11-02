@@ -2,4 +2,10 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="button_default_color">#FEBE01</color>
+    <color name="background_color">#112732</color>
+    <color name="dark_yellow">#FEBE01</color>
+    <color name="basic_yellow">#FCE576</color>
+    <color name="unselected_item">#795B04</color>
+
 </resources>
