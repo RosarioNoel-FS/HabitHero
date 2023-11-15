@@ -52,12 +52,19 @@ public class LandingActivity extends AppCompatActivity {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
-                firebaseAuthWithGoogle(account.getIdToken());
+                if(account != null) {
+                    firebaseAuthWithGoogle(account.getIdToken());
+                } else {
+                    // Handle the scenario when account or ID token is null.
+                    Toast.makeText(this, "Sign in failed: Account details not found.", Toast.LENGTH_SHORT).show();
+                }
             } catch (ApiException e) {
-                Toast.makeText(this, "Google sign in failed", Toast.LENGTH_SHORT).show();
+                // You can log the error or provide a more detailed message
+                Toast.makeText(this, "Google sign in failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }
     }
+
 
     private void firebaseAuthWithGoogle(String idToken) {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);

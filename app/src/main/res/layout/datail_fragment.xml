@@ -21,12 +21,24 @@
         android:id="@+id/imageView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintHeight_percent="0.15"
         app:layout_constraintBottom_toBottomOf="@+id/yellow_background"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.15"
         app:layout_constraintStart_toStartOf="@+id/yellow_background"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.65"
         app:srcCompat="@drawable/detail_placeholder_img" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Something"
+        android:textColor="#112732"
+        app:layout_constraintBottom_toTopOf="@+id/imageView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/yellow_background" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

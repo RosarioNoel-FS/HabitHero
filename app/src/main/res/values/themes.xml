@@ -4,8 +4,19 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
         <item name="android:statusBarColor">#D19D03</item>
-        <item name="colorPrimary">@color/button_default_color</item>
+        <item name="colorPrimary">@color/dark_yellow</item>
 
+    </style>
+
+    <style name="CustomTimePicker" parent="ThemeOverlay.MaterialComponents.TimePicker">
+        <item name="colorOnBackground">@color/basic_yellow</item>
+        <item name="colorOnSurface">@color/basic_yellow</item>
+        <item name="colorPrimary">@color/dark_yellow</item>
+    </style>
+
+    <style name="CustomSwitchStyle" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="colorControlActivated">@color/dark_yellow</item>
+        <!-- Add other customizations here -->
     </style>
 
     <style name="Theme.HabitHero" parent="Base.Theme.HabitHero" />

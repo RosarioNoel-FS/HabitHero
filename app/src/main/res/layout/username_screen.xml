@@ -14,22 +14,25 @@
         android:background="@color/white"
         android:ems="10"
         android:hint="username"
-        android:textColor="@color/black"
         android:inputType="text"
+        android:textColor="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.198" />
+        app:layout_constraintVertical_bias="0.45"
+        android:gravity="center"/>
 
     <Button
         android:id="@+id/confirm_username"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="33dp"
+        android:background="@drawable/rounded_button_dark"
         android:text="Confirm"
-        android:textColor="@color/white"
+        android:textColor="@color/background_color"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/username_editText" />
+        app:layout_constraintTop_toBottomOf="@+id/username_editText"
+        app:layout_constraintWidth_percent="0.5" />
 </androidx.constraintlayout.widget.ConstraintLayout>
