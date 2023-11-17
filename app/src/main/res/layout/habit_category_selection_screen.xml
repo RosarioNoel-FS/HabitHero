@@ -4,30 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_color">
-
-    <View
-        android:id="@+id/view"
-        android:layout_width="0dp"
-        android:layout_height="75dp"
-        android:background="@color/background_color"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    android:background="@drawable/gradient_background">
 
     <TextView
         android:id="@+id/top_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="99dp"
-        android:layout_marginEnd="98dp"
-        android:layout_marginBottom="20dp"
         android:text="Select A Habit Category"
         android:textColor="@color/dark_yellow"
-        android:textSize="18sp"
+        android:textSize="22dp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/fitness_button"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/fitness_button"
@@ -35,9 +25,9 @@
         android:layout_width="329dp"
         android:layout_height="0dp"
         android:layout_marginBottom="20dp"
-        android:background="@drawable/rounded_button_light"
+        android:background="@drawable/habit_item"
         android:text="Health &amp; Fitness"
-        android:textColor="@color/background_color"
+        android:textColor="@color/basic_yellow"
         app:layout_constraintBottom_toTopOf="@+id/mindful_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.09"
@@ -53,9 +43,9 @@
 
         android:layout_marginEnd="41dp"
         android:layout_marginBottom="20dp"
-        android:background="@drawable/rounded_button_light"
+        android:background="@drawable/habit_item"
         android:text="Mindfulness &amp; Well-being"
-        android:textColor="@color/background_color"
+        android:textColor="@color/basic_yellow"
         app:layout_constraintBottom_toTopOf="@+id/learning_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.09"
@@ -67,9 +57,9 @@
         android:layout_width="329dp"
         android:layout_height="66dp"
         android:layout_marginBottom="20dp"
-        android:background="@drawable/rounded_button_light"
+        android:background="@drawable/habit_item"
         android:text="Learning &amp; Growth"
-        android:textColor="@color/background_color"
+        android:textColor="@color/basic_yellow"
         app:layout_constraintBottom_toTopOf="@+id/creativity_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.09"
@@ -81,9 +71,9 @@
         android:layout_width="329dp"
         android:layout_height="0dp"
         android:layout_marginBottom="20dp"
-        android:background="@drawable/rounded_button_light"
+        android:background="@drawable/habit_item"
         android:text=" Creativity &amp; Expression"
-        android:textColor="@color/background_color"
+        android:textColor="@color/basic_yellow"
         app:layout_constraintBottom_toTopOf="@+id/adventure_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.09"
@@ -95,9 +85,10 @@
         android:layout_width="329dp"
         android:layout_height="66dp"
         android:layout_marginBottom="15dp"
-        android:background="@drawable/rounded_button_light"
+        android:background="@drawable/habit_item"
+
         android:text="Adventure &amp; Exploration"
-        android:textColor="@color/background_color"
+        android:textColor="@color/basic_yellow"
         app:layout_constraintBottom_toTopOf="@+id/textView4"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.09"
@@ -123,10 +114,10 @@
         android:layout_width="329dp"
 
         android:layout_height="66dp"
-        android:layout_marginBottom="50dp"
-        android:background="@drawable/rounded_button_dark"
+        android:layout_marginBottom="60dp"
+        android:background="@drawable/custom_background"
         android:text="Create your own"
-        android:textColor="@color/background_color"
+        android:textColor="@color/basic_yellow"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.09"
@@ -135,8 +126,8 @@
 
     <ImageView
         android:id="@+id/imageView4"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="10dp"
         android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="@+id/fitness_button"
@@ -146,8 +137,8 @@
 
     <ImageView
         android:id="@+id/imageView2"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="10dp"
         android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="@+id/mindful_button"
@@ -157,8 +148,8 @@
 
     <ImageView
         android:id="@+id/imageView3"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="10dp"
         android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="@+id/learning_button"
@@ -168,8 +159,8 @@
 
     <ImageView
         android:id="@+id/imageView5"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="10dp"
         android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="@+id/creativity_button"
@@ -179,8 +170,8 @@
 
     <ImageView
         android:id="@+id/imageView6"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="10dp"
         android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="@+id/adventure_button"
@@ -190,8 +181,8 @@
 
     <ImageView
         android:id="@+id/imageView7"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="10dp"
         android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="@+id/create_your_own_button"

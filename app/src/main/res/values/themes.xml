@@ -3,7 +3,7 @@
     <style name="Base.Theme.HabitHero" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-        <item name="android:statusBarColor">#D19D03</item>
+        <item name="android:statusBarColor">#04080B</item>
         <item name="colorPrimary">@color/dark_yellow</item>
 
     </style>

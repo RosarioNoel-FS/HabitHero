@@ -4,8 +4,19 @@
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
 
-        <item name="android:statusBarColor">#D19D03</item>
+        <item name="android:statusBarColor">#04080B</item>
         <item name="colorPrimary">@color/dark_yellow</item>
 
+    </style>
+
+    <style name="CustomTimePicker" parent="ThemeOverlay.MaterialComponents.TimePicker">
+        <item name="colorOnBackground">@color/basic_yellow</item>
+        <item name="colorOnSurface">@color/basic_yellow</item>
+        <item name="colorPrimary">@color/dark_yellow</item>
+    </style>
+
+    <style name="CustomSwitchStyle" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="colorControlActivated">@color/dark_yellow</item>
+        <!-- Add other customizations here -->
     </style>
 </resources>

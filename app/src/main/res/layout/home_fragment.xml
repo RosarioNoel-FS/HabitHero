@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".HomeFragment"
-    android:background="@color/background_color">
+    android:background="@drawable/gradient_background">
 
     <ImageView
         android:id="@+id/imageViewCreateHabitInstruction"
@@ -20,13 +20,15 @@
 
     <ImageView
         android:id="@+id/imageViewArrowToFAB"
-        android:layout_width="80dp"
-        android:layout_height="120dp"
+        android:layout_width="60dp"
+        android:layout_height="80dp"
         android:layout_marginEnd="20dp"
         android:contentDescription="arrow pointing to FAB"
         android:src="@drawable/down_arrow"
         app:layout_constraintBottom_toTopOf="@+id/fab_add_habit"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/creat_first_habit_text"
+        app:layout_constraintVertical_bias="0.97" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_habits"
@@ -57,6 +59,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
         android:text="Tap Add To Create Your First Habit!"
+        android:textStyle="bold"
         android:textColor="@color/basic_yellow"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -64,10 +67,10 @@
 
     <ImageView
         android:id="@+id/consistency_text"
-        android:layout_width="389dp"
-        android:layout_height="87dp"
-        android:layout_marginTop="10dp"
+        android:layout_width="350dp"
+        android:layout_height="80dp"
         android:visibility="gone"
+        android:layout_marginTop="30dp"
 
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

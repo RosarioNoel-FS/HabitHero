@@ -14,7 +14,7 @@ import java.util.Map;
             Map<String, List<String>> habitsByCategory = new HashMap<>();
 
             habitsByCategory.put("Health & Fitness", Arrays.asList(
-                    "Go for a 30-minute walk", "Drink 8 glasses of water daily", "Morning workout routine", "Try a new healthy recipe",
+                    "Go for a 30-minute walk", "Drink 8 glasses of water daily", "Follow a morning workout routine", "Try a new healthy recipe",
                     "Practice mindfulness meditation", "Do 10 minutes of stretching", "Get at least 7 hours of sleep", "Eat a balanced breakfast",
                     "Take the stairs instead of the elevator", "Track your meals in a food journal", "Cut down on processed foods",
                     "Incorporate a new type of exercise", "Take a yoga class", "Set a step goal for the day", "Try a new form of cardio",
@@ -49,13 +49,14 @@ import java.util.Map;
             ));
 
             habitsByCategory.put("Adventure & Exploration", Arrays.asList(
-                    "Go for a Nature Walk", "Try a New Sport", "Explore Your City", "Learn a Dance Move", "Hike a New Trail", "Engage in Geocaching",
-                    "Attend a Fitness Class", "Ride a Bike", "Try a New Water Sport", "Visit a Cultural Event", "Engage in Artistic Activities",
-                    "Climb a Hill or Stairs", "Play a New Game", "Photograph Your Adventures", "Visit a Nearby Attraction", "Practice Yoga Outdoors"
+                    "Go for a nature walk", "Try a new sport", "Explore your city", "Learn a dance move", "Hike a new trail", "Engage in geocaching",
+                    "Attend a fitness class", "Ride a bike", "Try a new water sport", "Visit a cultural event", "Engage in artistic activities",
+                    "Climb a hill or stairs", "Play a new game", "Photograph your adventures", "Visit a nearby attraction", "Practice yoga outdoors"
             ));
 
             return habitsByCategory;
         }
+
 
         public static int getCategoryIcon(String category) {
             Map<String, Integer> iconMap = new HashMap<>();

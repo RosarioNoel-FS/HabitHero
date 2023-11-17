@@ -1,5 +1,6 @@
 package com.example.habithero;
 
+import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,12 +50,13 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
     public static class HabitViewHolder extends RecyclerView.ViewHolder {
         private final ImageView iconImageView;
         private final TextView habitTextView;
-        // Add additional views for completion stats, streaks, etc.
+        private final ImageView habitCheckBox;
 
         public HabitViewHolder(View itemView) {
             super(itemView);
             iconImageView = itemView.findViewById(R.id.iconImageViewHome);
             habitTextView = itemView.findViewById(R.id.habitTextViewHome);
+            habitCheckBox = itemView.findViewById(R.id.habitCheckBox);
             // Initialize additional views
         }
 
@@ -62,6 +64,20 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
             habitTextView.setText(habit.getName());
             iconImageView.setImageResource(habit.getIcon());
             // Set additional views with habit data
+
+            // Set up the click listener for the checkbox
+            habitCheckBox.setOnClickListener(v -> {
+                // Show an AlertDialog to confirm if the habit is completed
+                new AlertDialog.Builder(itemView.getContext())
+                        .setTitle("Habit Completion")
+                        .setMessage("Did you complete this habit today?")
+                        .setPositiveButton("Yes", (dialog, which) -> {
+                            // User confirms the completion, change the checkbox image
+                            habitCheckBox.setImageResource(R.drawable.checked_box);
+                        })
+                        .setNegativeButton("No", null)
+                        .show();
+            });
 
             itemView.setOnClickListener(v -> {
                 if (listener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {

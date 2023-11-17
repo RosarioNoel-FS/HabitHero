@@ -5,6 +5,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
+
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -35,6 +37,7 @@ public class HabitCategorySelectionFragment extends Fragment {
         buttonCreativityExpression = view.findViewById(R.id.creativity_button);
         buttonAdventureExploration = view.findViewById(R.id.adventure_button);
         buttonCreateYourOwn = view.findViewById(R.id.create_your_own_button);
+
 
         //when a button is pressed pass in the category and onCategorySelected will fetch the appropriate List
         buttonHealthFitness.setOnClickListener(v -> onCategorySelected("Health & Fitness"));

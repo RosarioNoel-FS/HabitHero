@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -16,10 +18,13 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
     private RecyclerView recyclerView;
     private HabitCategoryAdapter habitAdapter;
     private String category;
+    private TextView titleTextView;
+
 
     @Override //receives habit category name and habit list from HabitCategorySelectionFragment
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.category_habit_selection_fragment, container, false);
+
 
         if (getArguments() != null) {
             category = getArguments().getString("category");
@@ -46,12 +51,16 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
         for (String habitName : habitNames) {
             habits.add(new Habit(habitName, category, categoryIcon));
         }
-
+        //set up UI
+        titleTextView = view.findViewById(R.id.titleTextView);
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         habitAdapter = new HabitCategoryAdapter(habits);
         habitAdapter.setOnItemClickListener(this::showHabitPreferenceDialog);
         recyclerView.setAdapter(habitAdapter);
+
+        //set title to category name
+        titleTextView.setText(category);
 
         return view;
     }
