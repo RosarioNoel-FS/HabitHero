@@ -8,7 +8,7 @@
     <item
         android:id="@+id/nav_rewards"
         android:icon="@drawable/trophy_icon"
-        android:title="Trophy"
+        android:title="Rewards"
         android:iconTint="@color/dark_yellow"
         />
     />

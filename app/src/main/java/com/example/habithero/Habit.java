@@ -1,86 +1,141 @@
 package com.example.habithero;
 
 import com.google.firebase.Timestamp;
-
+import com.google.firebase.firestore.Exclude;
 import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
 
-    public class Habit implements Serializable {
+public class Habit implements Serializable {
 
-        private String id; // Unique identifier
-        private String name;
-        private String category;
-        private int icon;
-        private int completionHour;
-        private int completionMinute;
+    private transient String id; // Mark as transient to exclude from serialization
+    private String name;
+    private String category;
+    private int icon;
+    private int completionHour; // Deadline hour
+    private int completionMinute; // Deadline minute
+    private boolean completed; // Is the habit completed?
 
-        private Timestamp timestamp; // Timestamp for when the habit was created
+    private Timestamp timestamp; // Timestamp for when the habit was created
 
+    private int streakCount; // Count of consecutive days habit is completed
+    private int completionCount; // Total count of habit completions
 
-        // Default constructor for Firebase deserialization
-        public Habit() {
-            // Default values or empty constructor for Firebase
-        }
-
-        public Habit(String name, String category, int completionHour, int completionMinute) {
-            this.name = name;
-            this.category = category;
-            this.completionHour = completionHour;
-            this.completionMinute = completionMinute;
-            // Assign default icon if not provided
-            this.icon = DataHelper.getCategoryIcon(this.category);
-        }
-
-        public Habit(String name, String category, int icon) {
-            this.name = name;
-            this.category = category;
-            this.icon = icon;
-            // Default values for the hour and minute or some logic to assign them
-            this.completionHour = 0; // Example default value
-            this.completionMinute = 0; // Example default value
-        }
-
-        // Additional constructor to include the timestamp
-        public Habit(String name, String category, int completionHour, int completionMinute, Timestamp timestamp) {
-            this.name = name;
-            this.category = category;
-            this.completionHour = completionHour;
-            this.completionMinute = completionMinute;
-            this.timestamp = timestamp;
-        }
-        // Getters and Setters
-        public String getName() {
-            return name;
-        }
-
-        public int getIcon() {
-            return icon;
-        }
-
-        public String getCategory() {
-            return category;
-        }
-
-        public int getCompletionHour() {
-            return completionHour;
-        }
-
-        public int getCompletionMinute() {
-            return completionMinute;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public Timestamp getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(Timestamp timestamp) {
-            this.timestamp = timestamp;
-        }
+    // Default constructor for Firebase deserialization
+    public Habit() {
+        // Default values or empty constructor for Firebase
     }
+
+    // Constructor for creating a new habit
+    public Habit(String name, String category, int completionHour, int completionMinute) {
+        this.name = name;
+        this.category = category;
+        this.icon = DataHelper.getCategoryIcon(this.category); // Assign the correct icon based on category
+        this.completionHour = completionHour;
+        this.completionMinute = completionMinute;
+        this.timestamp = new Timestamp(new Date()); // Set default timestamp
+        this.completed = false; // Set default completion status
+        this.streakCount = 0;
+        this.completionCount = 0;
+    }
+
+    // Increment streak count
+    public void incrementStreakCount() {
+        streakCount++;
+        completionCount++;
+    }
+
+    // Reset streak count
+    public void resetStreakCount() {
+        streakCount = 0;
+        completionCount++;
+    }
+
+    // Check if habit is completed before the deadline
+    private boolean isCompletedBeforeDeadline() {
+        Calendar deadline = Calendar.getInstance();
+        deadline.setTime(timestamp.toDate()); // Set to habit creation date
+        deadline.add(Calendar.HOUR_OF_DAY, completionHour);
+        deadline.add(Calendar.MINUTE, completionMinute);
+
+        // Adjust for next day if deadline has passed for today
+        if (deadline.before(Calendar.getInstance())) {
+            deadline.add(Calendar.DATE, 1);
+        }
+
+        return Calendar.getInstance().before(deadline);
+    }
+
+    // Update habit completion and streak
+    // In Habit class
+    public void completeHabit() {
+        if (isCompletedBeforeDeadline()) {
+            incrementStreakCount();
+        } else {
+            resetStreakCount();
+        }
+        setCompleted(true); // Mark the habit as completed
+    }
+
+    // Getters and Setters
+    @Exclude
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public int getCompletionCount() {
+        return completionCount;
+    }
+
+    public void setCompletionCount(int completionCount) {
+        this.completionCount = completionCount;
+    }
+
+    public int getStreakCount() {
+        return streakCount;
+    }
+
+    public void setStreakCount(int streakCount) {
+        this.streakCount = streakCount;
+    }
+
+    public Timestamp getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public boolean getCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
+
+    public int getIcon() {
+        return icon;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public int getCompletionHour() {
+        return completionHour;
+    }
+
+    public int getCompletionMinute() {
+        return completionMinute;
+    }
+
+    public String getName() {
+        return name;
+    }
+}

@@ -11,7 +11,11 @@ import android.widget.Button;
 import android.widget.TimePicker;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
+
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.Date;
 
 public class HabitPreferenceDialogFragment extends DialogFragment {
 
@@ -24,7 +28,7 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
     private HabitAddListener habitAddListener;
 
     public interface HabitAddListener {
-        void onHabitAdded();
+        void onHabitAdded(Habit habit);
     }
 
     public static HabitPreferenceDialogFragment newInstance(String habitName, String habitCategory) {
@@ -68,18 +72,17 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
     }
 
     //creates a new Habit object and uses FirebaseHelper to save it to Firebase under the user's ID
+    // Inside HabitPreferenceDialogFragment
     private void saveHabit(String name, String category, int hour, int minute) {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseHelper firebaseHelper = new FirebaseHelper();
         Habit habit = new Habit(name, category, hour, minute);
 
-        firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
+        firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
             @Override
-            public void onCallback(Void result) {
-                // Habit saved successfully
-                // Check if the target fragment is set and is the correct type
+            public void onCallback(Habit result) {
                 if (getTargetFragment() instanceof HabitAddListener) {
-                    ((HabitAddListener) getTargetFragment()).onHabitAdded();
+                    ((HabitAddListener) getTargetFragment()).onHabitAdded(result);
                 } else {
                     Log.e("HabitPreferenceDialog", "Target fragment is not set or wrong type");
                 }
@@ -87,10 +90,13 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
 
             @Override
             public void onError(Exception e) {
-                // Handle error
+                Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
             }
         });
     }
+
+
+
 
 
 }

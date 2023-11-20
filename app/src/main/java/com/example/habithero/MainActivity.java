@@ -124,11 +124,25 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
     }
 
     @Override
-    public void onHabitAdded() {
-        Log.d("MainActivity", "onHabitAdded was triggered");
+    public void onHabitAdded(Habit habit) {
+        Log.d("MainActivity", "onHabitAdded triggered with Habit ID: " + habit.getId());
 
-
-        navigateToHomeFragment();
-
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (currentFragment instanceof HomeFragment) {
+            ((HomeFragment) currentFragment).addNewHabit(habit);
+        } else {
+            navigateToHomeFragmentWithHabit(habit);
+        }
     }
+
+    public void navigateToHomeFragmentWithHabit(Habit habit) {
+        HomeFragment homeFragment = new HomeFragment();
+        // Pass the habit to HomeFragment
+        Bundle args = new Bundle();
+        args.putSerializable("newHabit", habit);
+        homeFragment.setArguments(args);
+
+        loadFragment(homeFragment);
+    }
+
 }

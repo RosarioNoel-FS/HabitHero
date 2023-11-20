@@ -53,7 +53,22 @@ public class HomeFragment extends Fragment {
 
         fetchUserHabitsAndUpdateUI();
 
+        if (getArguments() != null && getArguments().getSerializable("newHabit") != null) {
+            Habit newHabit = (Habit) getArguments().getSerializable("newHabit");
+            updateHabitList(newHabit);
+        } else {
+            fetchUserHabitsAndUpdateUI();
+        }
+
         return view;
+    }
+
+    public void updateHabitList(Habit newHabit) {
+        Log.d("HomeFragment", "Updating habit list with Habit ID: " + newHabit.getId());
+        if (homeAdapter != null) {
+            homeAdapter.addHabitAtTop(newHabit);
+            recyclerView.scrollToPosition(0);
+        }
     }
 
     private void fetchUserHabitsAndUpdateUI() {
@@ -62,6 +77,12 @@ public class HomeFragment extends Fragment {
         firebaseHelper.fetchUserHabits(userId, new FirebaseHelper.FirestoreCallback<List<Habit>>() {
             @Override
             public void onCallback(List<Habit> habits) {
+
+                Log.d("HomeFragment", "Fetched " + habits.size() + " habits");
+                for (Habit habit : habits) {
+                    Log.d("HomeFragment", "Fetched Habit ID: " + habit.getId() + ", Name: " + habit.getName());
+                }
+
                 Collections.sort(habits, (h1, h2) -> h2.getTimestamp().compareTo(h1.getTimestamp()));
                 homeAdapter = new HomeFragmentAdapter(habits);
                 recyclerView.setAdapter(homeAdapter);
@@ -99,4 +120,14 @@ public class HomeFragment extends Fragment {
         fragmentTransaction.addToBackStack(null);
         fragmentTransaction.commit();
     }
+
+    public void addNewHabit(Habit newHabit) {
+        if (homeAdapter != null) {
+            homeAdapter.addHabitAtTop(newHabit);
+            recyclerView.scrollToPosition(0);
+        }
+    }
+
+
+
 }

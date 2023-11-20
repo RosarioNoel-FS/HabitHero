@@ -49,7 +49,9 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
         int categoryIcon = DataHelper.getCategoryIcon(category);
         List<Habit> habits = new ArrayList<>();
         for (String habitName : habitNames) {
-            habits.add(new Habit(habitName, category, categoryIcon));
+            int defaultCompletionHour = 0; // Default value
+            int defaultCompletionMinute = 0; // Default value
+            habits.add(new Habit(habitName, category, defaultCompletionHour, defaultCompletionMinute));
         }
         //set up UI
         titleTextView = view.findViewById(R.id.titleTextView);
@@ -74,11 +76,18 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
         dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
     }
 
-    @Override
-    public void onHabitAdded() {
-        // Handle the navigation to the HomeFragment here
+    public void passHabitToMainActivity(Habit habit) {
+        Log.d("CategoryListFragment", "Attempting to pass habit to MainActivity. Habit ID: " + habit.getId());
         if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).navigateToHomeFragment();
+            Log.d("CategoryListFragment", "MainActivity instance found. Passing habit to MainActivity.");
+            ((MainActivity) getActivity()).onHabitAdded(habit);
+        } else {
+            Log.e("CategoryListFragment", "MainActivity instance not found. Habit not passed.");
         }
+    }
+
+    @Override
+    public void onHabitAdded(Habit habit) {
+        passHabitToMainActivity(habit);
     }
 }
