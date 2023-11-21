@@ -1,29 +1,40 @@
 package com.example.habithero;
 
 import android.app.AlertDialog;
+import android.graphics.Color;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.firebase.auth.FirebaseAuth;
-
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapter.HabitViewHolder> {
 
     private List<Habit> habits;
     private OnItemClickListener listener;
+    private FirebaseHelper firebaseHelper = new FirebaseHelper();
 
     public interface OnItemClickListener {
         void onItemClick(Habit habit);
+    }
+
+    public interface HabitViewHolderCallback {
+        void onDeleteHabit(int position);
+        void onUpdateHabit(int position, Habit updatedHabit); // Added this method
+    }
+
+    @NonNull
+    @Override
+    public HabitViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.habit_item_home, parent, false);
+        return new HabitViewHolder(itemView);
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
@@ -34,21 +45,24 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
         this.habits = new ArrayList<>(habits);
     }
 
-    @NonNull
-    @Override
-    public HabitViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.habit_item_home, parent, false);
-        return new HabitViewHolder(itemView);
-    }
-
     @Override
     public void onBindViewHolder(@NonNull HabitViewHolder holder, int position) {
         Habit habit = habits.get(position);
-        holder.iconImageView.setImageResource(habit.getIcon()); // Set icon based on habit
+        holder.iconImageView.setImageResource(habit.getIcon());
+        holder.habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
+        holder.bind(habit, listener, firebaseHelper, FirebaseAuth.getInstance().getCurrentUser().getUid(), position, new HabitViewHolderCallback() {
+            @Override
+            public void onDeleteHabit(int pos) {
+                habits.remove(pos);
+                notifyItemRemoved(pos);
+            }
 
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        FirebaseHelper firebaseHelper = new FirebaseHelper();
-        holder.bind(habit, listener, firebaseHelper, userId);
+            @Override
+            public void onUpdateHabit(int pos, Habit updatedHabit) {
+                habits.set(pos, updatedHabit);
+                notifyItemChanged(pos);
+            }
+        });
     }
 
     @Override
@@ -76,62 +90,86 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
             iconImageView = itemView.findViewById(R.id.iconImageViewHome);
             habitTextView = itemView.findViewById(R.id.habitTextViewHome);
             habitCheckBox = itemView.findViewById(R.id.habitCheckBox);
-            // Initialize additional views
         }
 
-        public void bind(Habit habit, final OnItemClickListener listener, FirebaseHelper firebaseHelper, String userId) {
+        public void bind(Habit habit, final OnItemClickListener listener, FirebaseHelper firebaseHelper, String userId, int position, HabitViewHolderCallback callback) {
             habitTextView.setText(habit.getName());
             iconImageView.setImageResource(habit.getIcon());
             habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
 
-            // Set up the click listener for the checkbox
-            habitCheckBox.setOnClickListener(v -> {
-                Log.d("HomeFragmentAdapter", "Checkbox clicked for habit ID: " + habit.getId());
-                if (!habit.getCompleted() && habit.getId() != null) {
-                    new AlertDialog.Builder(itemView.getContext())
-                            .setTitle("Habit Completion")
-                            .setMessage("Did you complete the habit today?")
-                            .setPositiveButton("Yes", (dialog, which) -> {
-                                Calendar deadline = Calendar.getInstance();
-                                deadline.set(Calendar.HOUR_OF_DAY, habit.getCompletionHour());
-                                deadline.set(Calendar.MINUTE, habit.getCompletionMinute());
-                                deadline.set(Calendar.SECOND, 0);
-                                deadline.set(Calendar.MILLISECOND, 0);
+            habitCheckBox.setOnClickListener(view -> {
+                AlertDialog dialog = new AlertDialog.Builder(view.getContext())
+                        .setTitle("Manage Habit")
+                        .setMessage("Choose your action for this habit:")
+                        .setPositiveButton("Complete", null)
+                        .setNeutralButton("Delete", null)
+                        .setNegativeButton("Cancel", null)
+                        .create();
 
-                                Calendar now = Calendar.getInstance();
+                dialog.setOnShowListener(dialogInterface -> {
+                    Button completeButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                    Button deleteButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+                    Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
 
-                                if (now.before(deadline)) {
-                                    habit.incrementStreakCount();
-                                    Log.d("HomeFragmentAdapter", "Habit completed before deadline. Streak incremented to: " + habit.getStreakCount());
-                                } else {
-                                    habit.resetStreakCount();
-                                    Log.d("HomeFragmentAdapter", "Habit completed after deadline. Streak reset.");
-                                }
+                    if (completeButton != null) {
+                        completeButton.setOnClickListener(innerView -> {
+                            new AlertDialog.Builder(view.getContext())
+                                    .setTitle("Complete Habit")
+                                    .setMessage("Have you completed your habit for the day?")
+                                    .setPositiveButton("Yes", (confirmDialog, confirmWhich) -> {
+                                        habit.completeHabit();
+                                        firebaseHelper.updateHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
+                                            @Override
+                                            public void onCallback(Void result) {
+                                                Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
+                                                callback.onUpdateHabit(position, habit);
+                                            }
 
-                                habit.setCompleted(true);
-                                habitCheckBox.setImageResource(R.drawable.checked_box);
+                                            @Override
+                                            public void onError(Exception e) {
+                                                Log.e("HomeFragmentAdapter", "Error updating habit in Firestore: " + e.getMessage(), e);
+                                            }
+                                        });
+                                        dialog.dismiss();
+                                    })
+                                    .setNegativeButton("No", null)
+                                    .show();
+                        });
+                    }
 
-                                // Update the habit in Firestore
-                                firebaseHelper.updateHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
-                                    @Override
-                                    public void onCallback(Void result) {
-                                        Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
-                                    }
+                    if (deleteButton != null) {
+                        deleteButton.setTextColor(Color.RED);
+                        deleteButton.setOnClickListener(innerView -> {
+                            new AlertDialog.Builder(view.getContext())
+                                    .setTitle("Delete Habit")
+                                    .setMessage("Are you sure you want to delete this habit? This action cannot be undone.")
+                                    .setPositiveButton("Yes, Delete", (confirmDialog, confirmWhich) -> {
+                                        firebaseHelper.deleteHabit(userId, habit.getId(), new FirebaseHelper.FirestoreCallback<Void>() {
+                                            @Override
+                                            public void onCallback(Void result) {
+                                                Log.d("HomeFragmentAdapter", "Habit deleted successfully.");
+                                                callback.onDeleteHabit(position);
+                                            }
 
-                                    @Override
-                                    public void onError(Exception e) {
-                                        Log.e("HomeFragmentAdapter", "Error updating habit in Firestore: " + e.getMessage(), e);
-                                    }
-                                });
-                            })
-                            .setNegativeButton("No", null)
-                            .show();
-                } else {
-                    Log.d("HomeFragmentAdapter", "Habit already completed or ID is null.");
-                }
+                                            @Override
+                                            public void onError(Exception e) {
+                                                Log.e("HomeFragmentAdapter", "Error deleting habit: " + e.getMessage(), e);
+                                            }
+                                        });
+                                        dialog.dismiss();
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
+                        });
+                    }
+
+                    if (cancelButton != null) {
+                        cancelButton.setOnClickListener(innerView -> dialog.dismiss());
+                    }
+                });
+
+                dialog.show();
             });
-
-
 
             itemView.setOnClickListener(v -> {
                 if (listener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {

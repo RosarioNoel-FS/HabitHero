@@ -54,9 +54,10 @@ public class Habit implements Serializable {
     // Check if habit is completed before the deadline
     private boolean isCompletedBeforeDeadline() {
         Calendar deadline = Calendar.getInstance();
-        deadline.setTime(timestamp.toDate()); // Set to habit creation date
-        deadline.add(Calendar.HOUR_OF_DAY, completionHour);
-        deadline.add(Calendar.MINUTE, completionMinute);
+        deadline.set(Calendar.HOUR_OF_DAY, completionHour);
+        deadline.set(Calendar.MINUTE, completionMinute);
+        deadline.set(Calendar.SECOND, 0);
+        deadline.set(Calendar.MILLISECOND, 0);
 
         // Adjust for next day if deadline has passed for today
         if (deadline.before(Calendar.getInstance())) {
@@ -65,6 +66,7 @@ public class Habit implements Serializable {
 
         return Calendar.getInstance().before(deadline);
     }
+
 
     // Update habit completion and streak
     // In Habit class

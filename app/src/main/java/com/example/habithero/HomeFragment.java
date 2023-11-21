@@ -15,8 +15,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.lang.Exception;
+
 
 public class HomeFragment extends Fragment {
 
@@ -27,6 +30,7 @@ public class HomeFragment extends Fragment {
     private TextView createFirstHabitText;
     private ImageView consistencyText;
     private HomeFragmentAdapter homeAdapter;
+    private FirebaseHelper firebaseHelper;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -73,16 +77,43 @@ public class HomeFragment extends Fragment {
 
     private void fetchUserHabitsAndUpdateUI() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        FirebaseHelper firebaseHelper = new FirebaseHelper();
+        firebaseHelper = new FirebaseHelper();
         firebaseHelper.fetchUserHabits(userId, new FirebaseHelper.FirestoreCallback<List<Habit>>() {
             @Override
             public void onCallback(List<Habit> habits) {
+                Calendar now = Calendar.getInstance();
 
-                Log.d("HomeFragment", "Fetched " + habits.size() + " habits");
+                // Process each habit for streak reset
                 for (Habit habit : habits) {
-                    Log.d("HomeFragment", "Fetched Habit ID: " + habit.getId() + ", Name: " + habit.getName());
+                    Calendar deadline = Calendar.getInstance();
+                    deadline.set(Calendar.HOUR_OF_DAY, habit.getCompletionHour());
+                    deadline.set(Calendar.MINUTE, habit.getCompletionMinute());
+                    deadline.set(Calendar.SECOND, 0);
+                    deadline.set(Calendar.MILLISECOND, 0);
+
+                    // Adjust for the next day if the deadline has passed for today
+                    if (deadline.before(now)) {
+                        deadline.add(Calendar.DATE, 1);
+                    }
+
+                    // Reset streak if it's a new day and the habit wasn't completed
+                    if (now.after(deadline) && !habit.getCompleted()) {
+                        habit.resetStreakCount();
+                        firebaseHelper.updateHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
+                            @Override
+                            public void onCallback(Void result) {
+                                Log.d("HomeFragment", "Streak count reset for habit ID: " + habit.getId());
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                Log.e("HomeFragment", "Error resetting streak count: " + e.getMessage(), e);
+                            }
+                        });
+                    }
                 }
 
+                // Sort the habits and update UI
                 Collections.sort(habits, (h1, h2) -> h2.getTimestamp().compareTo(h1.getTimestamp()));
                 homeAdapter = new HomeFragmentAdapter(habits);
                 recyclerView.setAdapter(homeAdapter);
@@ -91,10 +122,13 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onError(Exception e) {
-                // Handle the error
+                Log.e("HomeFragment", "Error fetching habits: " + e.getMessage(), e);
             }
         });
     }
+
+
+
 
     private void updateUIBasedOnHabits(List<Habit> habits) {
         if (habits.isEmpty()) {

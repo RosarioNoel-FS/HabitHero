@@ -18,6 +18,8 @@ public class FirebaseHelper {
 
         private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+
+
         // Method to fetch all habits for a specific user
         public void fetchUserHabits(String userId, final FirestoreCallback<List<Habit>> callback) {
             db.collection("users").document(userId).collection("habits")
@@ -117,9 +119,9 @@ public class FirebaseHelper {
 
 
     // Callback interface for Firestore operations
-        public interface FirestoreCallback<T> {
-            void onCallback(T result);
-            void onError(Exception e);
-        }
+    public interface FirestoreCallback<T> {
+        void onCallback(T result);
+        void onError(Exception e);
     }
+}
 
