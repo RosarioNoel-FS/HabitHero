@@ -79,10 +79,12 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
         Habit habit = new Habit(name, category, hour, minute);
 
         firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
+
+            // After saving the habit
             @Override
             public void onCallback(Habit result) {
-                if (getTargetFragment() instanceof HabitAddListener) {
-                    ((HabitAddListener) getTargetFragment()).onHabitAdded(result);
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).navigateToHomeFragment(result);
                 } else {
                     Log.e("HabitPreferenceDialog", "Target fragment is not set or wrong type");
                 }

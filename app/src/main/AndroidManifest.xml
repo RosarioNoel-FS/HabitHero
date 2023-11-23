@@ -25,6 +25,8 @@
 
         <activity android:name=".MainActivity" android:theme="@style/Theme.HabitHero"/>
         <activity android:name=".UsernameActivity"/>
+        <activity android:name=".ProfileActivity"/>
+
 
 
     </application>

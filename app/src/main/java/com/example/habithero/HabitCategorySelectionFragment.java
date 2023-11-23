@@ -45,10 +45,19 @@ public class HabitCategorySelectionFragment extends Fragment {
         buttonLearningGrowth.setOnClickListener(v -> onCategorySelected("Learning & Growth"));
         buttonCreativityExpression.setOnClickListener(v -> onCategorySelected("Creativity & Expression"));
         buttonAdventureExploration.setOnClickListener(v -> onCategorySelected("Adventure & Exploration"));
-        buttonCreateYourOwn.setOnClickListener(v -> onCategorySelected("Create Your Own"));
+        buttonCreateYourOwn.setOnClickListener(v -> showCustomHabitCreationDialog());
 
         return view;
     }
+
+    // Inside HabitCategorySelectionFragment
+
+    private void showCustomHabitCreationDialog() {
+        CustomHabitCreationDialogFragment dialogFragment = new CustomHabitCreationDialogFragment();
+        dialogFragment.setTargetFragment(this, 0);
+        dialogFragment.show(getParentFragmentManager(), "CustomHabitCreationDialog");
+    }
+
     //This method passes Category info (appropriate List, Category Name) to CategoryListFragment
     private void onCategorySelected(String category) {
         List<String> habitsList = DataHelper.getHabitsByCategory().get(category);

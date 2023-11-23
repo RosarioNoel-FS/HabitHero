@@ -17,6 +17,7 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
@@ -42,10 +43,7 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
             View view = inflater.inflate(R.layout.custom_actionbar_layout, null);
 
             ImageView customActionBarImage = view.findViewById(R.id.custom_actionbar_image);
-            customActionBarImage.setOnClickListener(v -> {
-                Intent homeIntent = new Intent(MainActivity.this, MainActivity.class);
-                startActivity(homeIntent);
-            });
+
 
             actionBar.setCustomView(view);
         }
@@ -63,9 +61,6 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
                         break;
                     case R.id.nav_rewards:
                         fragment = new RewardsFragment();
-                        break;
-                    case R.id.nav_settings:
-                        fragment = new SettingsFragment();
                         break;
                 }
                 loadFragment(fragment);
@@ -123,26 +118,47 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
         loadFragment(new HomeFragment());
     }
 
+//    @Override
+//    public void onHabitAdded(Habit habit) {
+//        Log.d("MainActivity", "onHabitAdded triggered with Habit ID: " + habit.getId());
+//
+//        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+//        if (currentFragment instanceof HomeFragment) {
+//            ((HomeFragment) currentFragment).addNewHabit(habit);
+//        } else {
+//            navigateToHomeFragmentWithHabit(habit);
+//        }
+//    }
+//
+//    public void navigateToHomeFragmentWithHabit(Habit habit) {
+//        HomeFragment homeFragment = new HomeFragment();
+//        // Pass the habit to HomeFragment
+//        Bundle args = new Bundle();
+//        args.putSerializable("newHabit", habit);
+//        homeFragment.setArguments(args);
+//
+//        loadFragment(homeFragment);
+//    }
+
     @Override
     public void onHabitAdded(Habit habit) {
         Log.d("MainActivity", "onHabitAdded triggered with Habit ID: " + habit.getId());
-
-        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-        if (currentFragment instanceof HomeFragment) {
-            ((HomeFragment) currentFragment).addNewHabit(habit);
-        } else {
-            navigateToHomeFragmentWithHabit(habit);
-        }
+        navigateToHomeFragment(habit);
     }
 
-    public void navigateToHomeFragmentWithHabit(Habit habit) {
+    public void navigateToHomeFragment(Habit newHabit) {
         HomeFragment homeFragment = new HomeFragment();
-        // Pass the habit to HomeFragment
-        Bundle args = new Bundle();
-        args.putSerializable("newHabit", habit);
-        homeFragment.setArguments(args);
 
-        loadFragment(homeFragment);
+        if (newHabit != null) {
+            Bundle args = new Bundle();
+            args.putSerializable("newHabit", newHabit);
+            homeFragment.setArguments(args);
+        }
+
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, homeFragment)
+                .commit();
     }
 
 }
