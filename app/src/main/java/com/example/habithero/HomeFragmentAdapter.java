@@ -21,6 +21,9 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
     private OnItemClickListener listener;
     private FirebaseHelper firebaseHelper = new FirebaseHelper();
 
+    private HomeFragment homeFragment;
+
+
     public interface OnItemClickListener {
         void onItemClick(Habit habit);
     }
@@ -41,8 +44,10 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
         this.listener = listener;
     }
 
-    public HomeFragmentAdapter(List<Habit> habits) {
+    public HomeFragmentAdapter(List<Habit> habits, HomeFragment homeFragment) {
         this.habits = new ArrayList<>(habits);
+        this.homeFragment = homeFragment;
+
     }
 
     @Override
@@ -51,11 +56,25 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
         holder.iconImageView.setImageResource(habit.getIcon());
         holder.habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
         holder.bind(habit, listener, firebaseHelper, FirebaseAuth.getInstance().getCurrentUser().getUid(), position, new HabitViewHolderCallback() {
-            @Override
-            public void onDeleteHabit(int pos) {
-                habits.remove(pos);
-                notifyItemRemoved(pos);
+            public void onDeleteHabit(int position) {
+                if (!habits.isEmpty() && position >= 0 && position < habits.size()) {
+                    habits.remove(position);
+                    notifyItemRemoved(position);
+                    notifyDataSetChanged(); // Notify the adapter that data set has changed
+
+                    // Check if list is empty to update UI
+                    if (habits.isEmpty() && homeFragment != null) {
+                        homeFragment.updateUIBasedOnHabits(habits);
+                    }
+
+                    Log.d("HomeFragmentAdapter", "Habit at position " + position + " deleted.");
+                } else {
+                    Log.e("HomeFragmentAdapter", "Attempted to delete item at invalid position: " + position);
+                }
             }
+
+
+
 
             @Override
             public void onUpdateHabit(int pos, Habit updatedHabit) {

@@ -115,30 +115,15 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
     public void navigateToHomeFragment() {
         Log.d("MainActivity", "Navigating to HomeFragment");
 
-        loadFragment(new HomeFragment());
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, new HomeFragment())
+                .commit();
     }
 
-//    @Override
-//    public void onHabitAdded(Habit habit) {
-//        Log.d("MainActivity", "onHabitAdded triggered with Habit ID: " + habit.getId());
-//
-//        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-//        if (currentFragment instanceof HomeFragment) {
-//            ((HomeFragment) currentFragment).addNewHabit(habit);
-//        } else {
-//            navigateToHomeFragmentWithHabit(habit);
-//        }
-//    }
-//
-//    public void navigateToHomeFragmentWithHabit(Habit habit) {
-//        HomeFragment homeFragment = new HomeFragment();
-//        // Pass the habit to HomeFragment
-//        Bundle args = new Bundle();
-//        args.putSerializable("newHabit", habit);
-//        homeFragment.setArguments(args);
-//
-//        loadFragment(homeFragment);
-//    }
+
+
+
 
     @Override
     public void onHabitAdded(Habit habit) {
@@ -147,6 +132,8 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
     }
 
     public void navigateToHomeFragment(Habit newHabit) {
+        Log.d("DebugLog", "navigateToHomeFragment called with Habit: " + (newHabit != null ? newHabit.getName() : "null"));
+
         HomeFragment homeFragment = new HomeFragment();
 
         if (newHabit != null) {
@@ -154,11 +141,14 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
             args.putSerializable("newHabit", newHabit);
             homeFragment.setArguments(args);
         }
-
+        Log.d("DebugLog", "About to load HomeFragment");
         getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragment_container, homeFragment)
                 .commit();
     }
+
+
+
 
 }

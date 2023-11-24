@@ -71,23 +71,19 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
 
 
     private void showHabitPreferenceDialog(Habit habit) {
+        Log.d("DebugLog", "Showing HabitPreferenceDialog for Habit: " + habit.getName());
         HabitPreferenceDialogFragment dialogFragment = HabitPreferenceDialogFragment.newInstance(habit.getName(), habit.getCategory());
-        dialogFragment.setTargetFragment(this, 0); // Set this fragment as the target for results
         dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
     }
 
-    public void passHabitToMainActivity(Habit habit) {
-        Log.d("CategoryListFragment", "Attempting to pass habit to MainActivity. Habit ID: " + habit.getId());
-        if (getActivity() instanceof MainActivity) {
-            Log.d("CategoryListFragment", "MainActivity instance found. Passing habit to MainActivity.");
-            ((MainActivity) getActivity()).onHabitAdded(habit);
-        } else {
-            Log.e("CategoryListFragment", "MainActivity instance not found. Habit not passed.");
-        }
-    }
+
+
 
     @Override
     public void onHabitAdded(Habit habit) {
-        passHabitToMainActivity(habit);
+        Log.d("DebugLog", "onHabitAdded called in CategoryListFragment/CustomHabitCreationDialogFragment, Habit ID: " + habit.getId());
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).onHabitAdded(habit);
+        }
     }
 }

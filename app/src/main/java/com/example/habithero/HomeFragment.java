@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.lang.Exception;
-
 
 public class HomeFragment extends Fragment {
 
@@ -49,7 +47,7 @@ public class HomeFragment extends Fragment {
         consistencyText = view.findViewById(R.id.consistency_text);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        homeAdapter = new HomeFragmentAdapter(new ArrayList<>());
+        homeAdapter = new HomeFragmentAdapter(new ArrayList<>(), this);
         recyclerView.setAdapter(homeAdapter);
 
         fabAddHabit.setOnClickListener(v -> navigateToHabitCategorySelection());
@@ -57,22 +55,7 @@ public class HomeFragment extends Fragment {
 
         fetchUserHabitsAndUpdateUI();
 
-        if (getArguments() != null && getArguments().getSerializable("newHabit") != null) {
-            Habit newHabit = (Habit) getArguments().getSerializable("newHabit");
-            updateHabitList(newHabit);
-        } else {
-            fetchUserHabitsAndUpdateUI();
-        }
-
         return view;
-    }
-
-    public void updateHabitList(Habit newHabit) {
-        Log.d("HomeFragment", "Updating habit list with Habit ID: " + newHabit.getId());
-        if (homeAdapter != null) {
-            homeAdapter.addHabitAtTop(newHabit);
-            recyclerView.scrollToPosition(0);
-        }
     }
 
     private void fetchUserHabitsAndUpdateUI() {
@@ -83,7 +66,6 @@ public class HomeFragment extends Fragment {
             public void onCallback(List<Habit> habits) {
                 Calendar now = Calendar.getInstance();
 
-                // Process each habit for streak reset
                 for (Habit habit : habits) {
                     Calendar deadline = Calendar.getInstance();
                     deadline.set(Calendar.HOUR_OF_DAY, habit.getCompletionHour());
@@ -91,12 +73,10 @@ public class HomeFragment extends Fragment {
                     deadline.set(Calendar.SECOND, 0);
                     deadline.set(Calendar.MILLISECOND, 0);
 
-                    // Adjust for the next day if the deadline has passed for today
                     if (deadline.before(now)) {
                         deadline.add(Calendar.DATE, 1);
                     }
 
-                    // Reset streak if it's a new day and the habit wasn't completed
                     if (now.after(deadline) && !habit.getCompleted()) {
                         habit.resetStreakCount();
                         firebaseHelper.updateHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
@@ -113,11 +93,8 @@ public class HomeFragment extends Fragment {
                     }
                 }
 
-                // Sort the habits and update UI
                 Collections.sort(habits, (h1, h2) -> h2.getTimestamp().compareTo(h1.getTimestamp()));
-                homeAdapter = new HomeFragmentAdapter(habits);
-                recyclerView.setAdapter(homeAdapter);
-                updateUIBasedOnHabits(habits);
+                updateHabitListUI(habits);
             }
 
             @Override
@@ -127,10 +104,13 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    private void updateHabitListUI(List<Habit> habits) {
+        homeAdapter = new HomeFragmentAdapter(habits, this);
+        recyclerView.setAdapter(homeAdapter);
+        updateUIBasedOnHabits(habits);
+    }
 
-
-
-    private void updateUIBasedOnHabits(List<Habit> habits) {
+    public void updateUIBasedOnHabits(List<Habit> habits) {
         if (habits.isEmpty()) {
             recyclerView.setVisibility(View.GONE);
             imageViewCreateHabitInstruction.setVisibility(View.VISIBLE);
@@ -154,14 +134,4 @@ public class HomeFragment extends Fragment {
         fragmentTransaction.addToBackStack(null);
         fragmentTransaction.commit();
     }
-
-    public void addNewHabit(Habit newHabit) {
-        if (homeAdapter != null) {
-            homeAdapter.addHabitAtTop(newHabit);
-            recyclerView.scrollToPosition(0);
-        }
-    }
-
-
-
 }

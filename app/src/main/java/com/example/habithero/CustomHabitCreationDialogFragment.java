@@ -2,6 +2,7 @@ package com.example.habithero;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -9,7 +10,7 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
 
-public class CustomHabitCreationDialogFragment extends DialogFragment {
+public class CustomHabitCreationDialogFragment extends DialogFragment implements HabitPreferenceDialogFragment.HabitAddListener{
 
     private EditText editTextHabitTitle;
 
@@ -42,16 +43,27 @@ public class CustomHabitCreationDialogFragment extends DialogFragment {
 
     private void onConfirmClicked() {
         String habitTitle = editTextHabitTitle.getText().toString().trim();
+        Log.d("DebugLog", "Custom habit confirmed: " + habitTitle);
 
         if (!habitTitle.isEmpty()) {
             HabitPreferenceDialogFragment dialogFragment = HabitPreferenceDialogFragment.newInstance(habitTitle, "Create Your Own");
-            dialogFragment.setTargetFragment(getTargetFragment(), 0);
             dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
             dismiss();
         } else {
             editTextHabitTitle.setError("Please enter a habit title");
         }
     }
+
+    @Override
+    public void onHabitAdded(Habit habit) {
+        Log.d("DebugLog", "onHabitAdded called in CategoryListFragment/CustomHabitCreationDialogFragment, Habit ID: " + habit.getId());
+
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).onHabitAdded(habit);
+        }
+    }
+
+
 
 
 }

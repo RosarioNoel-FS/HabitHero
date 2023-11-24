@@ -74,6 +74,8 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
     //creates a new Habit object and uses FirebaseHelper to save it to Firebase under the user's ID
     // Inside HabitPreferenceDialogFragment
     private void saveHabit(String name, String category, int hour, int minute) {
+        Log.d("DebugLog", "Saving habit: " + name + ", Category: " + category);
+
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseHelper firebaseHelper = new FirebaseHelper();
         Habit habit = new Habit(name, category, hour, minute);
@@ -83,10 +85,12 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
             // After saving the habit
             @Override
             public void onCallback(Habit result) {
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).navigateToHomeFragment(result);
-                } else {
-                    Log.e("HabitPreferenceDialog", "Target fragment is not set or wrong type");
+                Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
+                dismiss(); // Dismiss the dialog
+
+                if (getTargetFragment() instanceof HabitAddListener) {
+                    ((HabitAddListener) getTargetFragment()).onHabitAdded(result);
+                }else {
                 }
             }
 
