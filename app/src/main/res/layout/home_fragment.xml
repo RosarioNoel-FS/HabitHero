@@ -7,12 +7,24 @@
     tools:context=".HomeFragment"
     android:background="@drawable/gradient_background">
 
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:indeterminateTint="@color/dark_yellow"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <ImageView
         android:id="@+id/imageViewCreateHabitInstruction"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:scaleType="center"
         android:src="@drawable/no_data_image"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,6 +37,8 @@
         android:layout_marginEnd="20dp"
         android:contentDescription="arrow pointing to FAB"
         android:src="@drawable/down_arrow"
+        android:visibility="gone"
+
         app:layout_constraintBottom_toTopOf="@+id/fab_add_habit"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/creat_first_habit_text"
@@ -59,6 +73,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
         android:text="Tap Add To Create Your First Habit!"
+        android:visibility="gone"
         android:textStyle="bold"
         android:textColor="@color/basic_yellow"
         app:layout_constraintEnd_toEndOf="parent"

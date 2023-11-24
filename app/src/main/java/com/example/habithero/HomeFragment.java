@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -30,6 +31,8 @@ public class HomeFragment extends Fragment {
     private HomeFragmentAdapter homeAdapter;
     private FirebaseHelper firebaseHelper;
 
+    private ProgressBar progressBar;
+
     public HomeFragment() {
         // Required empty public constructor
     }
@@ -45,9 +48,10 @@ public class HomeFragment extends Fragment {
         imageViewArrowToFAB = view.findViewById(R.id.imageViewArrowToFAB);
         createFirstHabitText = view.findViewById(R.id.creat_first_habit_text);
         consistencyText = view.findViewById(R.id.consistency_text);
+        progressBar = view.findViewById(R.id.progressBar);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        homeAdapter = new HomeFragmentAdapter(new ArrayList<>(), this);
+        homeAdapter = new HomeFragmentAdapter(new ArrayList<>(), this,progressBar);
         recyclerView.setAdapter(homeAdapter);
 
         fabAddHabit.setOnClickListener(v -> navigateToHabitCategorySelection());
@@ -61,6 +65,8 @@ public class HomeFragment extends Fragment {
     private void fetchUserHabitsAndUpdateUI() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         firebaseHelper = new FirebaseHelper();
+        progressBar.setVisibility(View.VISIBLE); // Show the progress bar when fetching data
+
         firebaseHelper.fetchUserHabits(userId, new FirebaseHelper.FirestoreCallback<List<Habit>>() {
             @Override
             public void onCallback(List<Habit> habits) {
@@ -95,17 +101,20 @@ public class HomeFragment extends Fragment {
 
                 Collections.sort(habits, (h1, h2) -> h2.getTimestamp().compareTo(h1.getTimestamp()));
                 updateHabitListUI(habits);
+                progressBar.setVisibility(View.GONE); // Hide the progress bar after processing data
             }
 
             @Override
             public void onError(Exception e) {
                 Log.e("HomeFragment", "Error fetching habits: " + e.getMessage(), e);
+                progressBar.setVisibility(View.GONE); // Hide the progress bar also in case of an error
             }
         });
     }
 
+
     private void updateHabitListUI(List<Habit> habits) {
-        homeAdapter = new HomeFragmentAdapter(habits, this);
+        homeAdapter = new HomeFragmentAdapter(habits, this,progressBar);
         recyclerView.setAdapter(homeAdapter);
         updateUIBasedOnHabits(habits);
     }

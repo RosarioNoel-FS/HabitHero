@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,10 +18,10 @@ import java.util.List;
 
 public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapter.HabitViewHolder> {
 
+    private ProgressBar progressBar;
     private List<Habit> habits;
     private OnItemClickListener listener;
     private FirebaseHelper firebaseHelper = new FirebaseHelper();
-
     private HomeFragment homeFragment;
 
 
@@ -37,16 +38,17 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
     @Override
     public HabitViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.habit_item_home, parent, false);
-        return new HabitViewHolder(itemView);
+        return new HabitViewHolder(itemView,progressBar);
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
         this.listener = listener;
     }
 
-    public HomeFragmentAdapter(List<Habit> habits, HomeFragment homeFragment) {
+    public HomeFragmentAdapter(List<Habit> habits, HomeFragment homeFragment,ProgressBar progressBar) {
         this.habits = new ArrayList<>(habits);
         this.homeFragment = homeFragment;
+        this.progressBar = progressBar;
 
     }
 
@@ -103,12 +105,15 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
         private final ImageView iconImageView;
         private final TextView habitTextView;
         private final ImageView habitCheckBox;
+        private final ProgressBar progressBar;
 
-        public HabitViewHolder(View itemView) {
+        public HabitViewHolder(View itemView, ProgressBar progressBar) {
             super(itemView);
+            this.progressBar = progressBar;
             iconImageView = itemView.findViewById(R.id.iconImageViewHome);
             habitTextView = itemView.findViewById(R.id.habitTextViewHome);
             habitCheckBox = itemView.findViewById(R.id.habitCheckBox);
+
         }
 
         public void bind(Habit habit, final OnItemClickListener listener, FirebaseHelper firebaseHelper, String userId, int position, HabitViewHolderCallback callback) {
@@ -117,6 +122,8 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
             habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
 
             habitCheckBox.setOnClickListener(view -> {
+                progressBar.setVisibility(View.VISIBLE); // Show progress bar
+
                 AlertDialog dialog = new AlertDialog.Builder(view.getContext())
                         .setTitle("Manage Habit")
                         .setMessage("Choose your action for this habit:")
@@ -132,6 +139,7 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
 
                     if (completeButton != null) {
                         completeButton.setOnClickListener(innerView -> {
+
                             new AlertDialog.Builder(view.getContext())
                                     .setTitle("Complete Habit")
                                     .setMessage("Have you completed your habit for the day?")
@@ -141,12 +149,16 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                                             @Override
                                             public void onCallback(Void result) {
                                                 Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
+
                                                 callback.onUpdateHabit(position, habit);
                                             }
 
                                             @Override
                                             public void onError(Exception e) {
                                                 Log.e("HomeFragmentAdapter", "Error updating habit in Firestore: " + e.getMessage(), e);
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
+
                                             }
                                         });
                                         dialog.dismiss();
@@ -159,6 +171,8 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                     if (deleteButton != null) {
                         deleteButton.setTextColor(Color.RED);
                         deleteButton.setOnClickListener(innerView -> {
+                            progressBar.setVisibility(View.VISIBLE); // Show progress bar
+
                             new AlertDialog.Builder(view.getContext())
                                     .setTitle("Delete Habit")
                                     .setMessage("Are you sure you want to delete this habit? This action cannot be undone.")
@@ -167,12 +181,16 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                                             @Override
                                             public void onCallback(Void result) {
                                                 Log.d("HomeFragmentAdapter", "Habit deleted successfully.");
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
+
                                                 callback.onDeleteHabit(position);
                                             }
 
                                             @Override
                                             public void onError(Exception e) {
                                                 Log.e("HomeFragmentAdapter", "Error deleting habit: " + e.getMessage(), e);
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
+
                                             }
                                         });
                                         dialog.dismiss();
