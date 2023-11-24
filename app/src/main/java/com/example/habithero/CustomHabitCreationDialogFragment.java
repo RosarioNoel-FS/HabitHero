@@ -47,12 +47,17 @@ public class CustomHabitCreationDialogFragment extends DialogFragment implements
 
         if (!habitTitle.isEmpty()) {
             HabitPreferenceDialogFragment dialogFragment = HabitPreferenceDialogFragment.newInstance(habitTitle, "Create Your Own");
+
+            // Set MainActivity as the listener
+            dialogFragment.setHabitAddListener((HabitPreferenceDialogFragment.HabitAddListener) getActivity());
+
             dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
             dismiss();
         } else {
             editTextHabitTitle.setError("Please enter a habit title");
         }
     }
+
 
     @Override
     public void onHabitAdded(Habit habit) {
@@ -62,8 +67,5 @@ public class CustomHabitCreationDialogFragment extends DialogFragment implements
             ((MainActivity) getActivity()).onHabitAdded(habit);
         }
     }
-
-
-
 
 }

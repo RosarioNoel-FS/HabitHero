@@ -2,7 +2,6 @@ package com.example.habithero;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,10 +11,8 @@ import android.widget.TimePicker;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
 
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.Date;
 
 public class HabitPreferenceDialogFragment extends DialogFragment {
 
@@ -24,11 +21,16 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
     private Button buttonCancel;
     private String habitName;
     private String habitCategory;
-
     private HabitAddListener habitAddListener;
+
+
 
     public interface HabitAddListener {
         void onHabitAdded(Habit habit);
+    }
+
+    public void setHabitAddListener(HabitAddListener listener) {
+        this.habitAddListener = listener;
     }
 
     public static HabitPreferenceDialogFragment newInstance(String habitName, String habitCategory) {
@@ -88,9 +90,8 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
                 Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
                 dismiss(); // Dismiss the dialog
 
-                if (getTargetFragment() instanceof HabitAddListener) {
-                    ((HabitAddListener) getTargetFragment()).onHabitAdded(result);
-                }else {
+                if (habitAddListener != null) {
+                    habitAddListener.onHabitAdded(result);
                 }
             }
 
@@ -100,9 +101,5 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
             }
         });
     }
-
-
-
-
 
 }

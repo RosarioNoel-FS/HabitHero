@@ -71,10 +71,11 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
 
 
     private void showHabitPreferenceDialog(Habit habit) {
-        Log.d("DebugLog", "Showing HabitPreferenceDialog for Habit: " + habit.getName());
         HabitPreferenceDialogFragment dialogFragment = HabitPreferenceDialogFragment.newInstance(habit.getName(), habit.getCategory());
+        dialogFragment.setHabitAddListener((HabitPreferenceDialogFragment.HabitAddListener) getActivity());
         dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
     }
+
 
 
 
