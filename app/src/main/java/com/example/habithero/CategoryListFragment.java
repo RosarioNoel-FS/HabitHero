@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CategoryListFragment extends Fragment implements HabitPreferenceDialogFragment.HabitAddListener {
+public class CategoryListFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private HabitCategoryAdapter habitAdapter;
@@ -67,24 +67,10 @@ public class CategoryListFragment extends Fragment implements HabitPreferenceDia
         return view;
     }
 
-
-
-
     private void showHabitPreferenceDialog(Habit habit) {
         HabitPreferenceDialogFragment dialogFragment = HabitPreferenceDialogFragment.newInstance(habit.getName(), habit.getCategory());
         dialogFragment.setHabitAddListener((HabitPreferenceDialogFragment.HabitAddListener) getActivity());
         dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
     }
 
-
-
-
-
-    @Override
-    public void onHabitAdded(Habit habit) {
-        Log.d("DebugLog", "onHabitAdded called in CategoryListFragment/CustomHabitCreationDialogFragment, Habit ID: " + habit.getId());
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).onHabitAdded(habit);
-        }
-    }
 }
