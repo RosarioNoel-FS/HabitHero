@@ -7,13 +7,9 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.Source;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-//import com.google.cloud.storage.Bucket;
-//import com.google.cloud.storage.BucketInfo;
-//import com.google.cloud.storage.Storage;
-//import com.google.cloud.storage.StorageOptions;
+
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -116,12 +112,7 @@ public class FirebaseHelper {
                     .addOnFailureListener(e -> callback.onError(e));
         }
 
-    public void updateHabitCompletion(String userId, String habitId, boolean isCompleted, FirestoreCallback<Void> callback) {
-        db.collection("users").document(userId).collection("habits").document(habitId)
-                .update("completed", isCompleted) // Use the isCompleted parameter here
-                .addOnSuccessListener(aVoid -> callback.onCallback(null))
-                .addOnFailureListener(e -> callback.onError(e));
-    }
+
 
 
 
@@ -174,6 +165,25 @@ public class FirebaseHelper {
                 .update(updates)
                 .addOnSuccessListener(aVoid -> callback.onCallback(null))
                 .addOnFailureListener(callback::onError);
+    }
+
+    // Method to fetch predefined habits by category
+    public void fetchPredefinedHabitsByCategory(String categoryName, FirestoreCallback<List<Habit>> callback) {
+        db.collection("predefinedHabits").document(categoryName).collection("habits")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Habit> habits = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Habit habit = document.toObject(Habit.class);
+                            habits.add(habit);
+                        }
+                        callback.onCallback(habits);
+                    } else {
+                        Log.e("FirebaseHelper", "Error fetching predefined habits: " + task.getException().getMessage(), task.getException());
+                        callback.onError(task.getException());
+                    }
+                });
     }
 
 }

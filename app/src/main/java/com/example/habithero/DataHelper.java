@@ -72,15 +72,6 @@ import java.util.Map;
             Log.d("DataHelper", "Category: " + category + ", Icon Resource: " + icon);
             return icon;    }
 
-        public static List<HabitCategory> getHabitCategories() {
-            List<HabitCategory> categories = new ArrayList<>();
-            categories.add(new HabitCategory("Health & Fitness", R.drawable.health));
-            categories.add(new HabitCategory("Mindfulness & Well-being", R.drawable.mindfulness));
-            categories.add(new HabitCategory("Learning & Growth", R.drawable.learning));
-            categories.add(new HabitCategory("Creativity & Expression", R.drawable.creativity));
-            categories.add(new HabitCategory("Adventure & Exploration", R.drawable.adventure));
-            // Add more categories as needed
-            return categories;
-        }
+
     }
 
