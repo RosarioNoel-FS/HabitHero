@@ -1,35 +1,47 @@
 package com.example.habithero;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
+import com.google.firebase.auth.FirebaseAuth;
 
-public class MainActivity extends AppCompatActivity implements HabitPreferenceDialogFragment.HabitAddListener {
+public class MainActivity extends AppCompatActivity implements HabitPreferenceDialogFragment.HabitAddListener, SettingsFragment.ProfileImageUpdateListener {
+
+    private Uri profileImageUri;
+    private FirebaseHelper firebaseHelper;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        firebaseHelper = new FirebaseHelper();
         setupActionBar();
         setupBottomNavigation();
+        loadProfileImage();
+
     }
 
     private void setupActionBar() {
@@ -42,12 +54,66 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
             LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View view = inflater.inflate(R.layout.custom_actionbar_layout, null);
 
-            ImageView customActionBarImage = view.findViewById(R.id.custom_actionbar_image);
+            ActionBar.LayoutParams params = new ActionBar.LayoutParams(
+                    ActionBar.LayoutParams.WRAP_CONTENT,
+                    ActionBar.LayoutParams.WRAP_CONTENT,
+                    Gravity.START | Gravity.CENTER_VERTICAL
+            );
 
-
-            actionBar.setCustomView(view);
+            actionBar.setCustomView(view, params);
         }
     }
+
+    private void loadProfileImage() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        firebaseHelper.loadProfileImage(userId, new FirebaseHelper.FirestoreCallback<Uri>() {
+            @Override
+            public void onCallback(Uri uri) {
+                Log.d("MainActivity", "Loading profile image URI: " + uri);
+                profileImageUri = uri;
+                invalidateOptionsMenu(); // Invalidate the options menu so it will be recreated with the new image
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("MainActivity", "Error loading profile image: " + e.getMessage());
+            }
+        });
+    }
+
+
+
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem profileItem = menu.findItem(R.id.profile);
+        ImageView profileImageView = (ImageView) profileItem.getActionView().findViewById(R.id.profile_image_view);
+
+        if (profileImageUri != null) {
+            Glide.with(this)
+                    .load(profileImageUri)
+                    .circleCrop()
+                    .skipMemoryCache(true) // Skip memory cache
+                    .diskCacheStrategy(DiskCacheStrategy.NONE) // Skip disk cache
+                    .into(profileImageView);
+        } else {
+            // Set a default image if no profile image is available
+            Glide.with(this)
+                    .load(R.drawable.profile_light_boy) // Replace with your default image drawable
+                    .circleCrop()
+                    .into(profileImageView);
+        }
+
+        // Set click listener for the profile image view
+        profileImageView.setOnClickListener(v -> navigateToSettingsFragment());
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+
+// ... [Rest of your MainActivity code]
+
+
 
     private void setupBottomNavigation() {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -91,37 +157,26 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
                 Intent homeIntent = new Intent(this, LandingActivity.class);
                 startActivity(homeIntent);
                 return true;
-            case R.id.sign_out:
-                showSignOutDialog();
+            case R.id.profile:
+                navigateToSettingsFragment();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void showSignOutDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Sign Out")
-                .setMessage("Are you sure you want to sign out?")
-                .setPositiveButton("Yes", (dialog, whichButton) -> {
-                    Intent landingIntent = new Intent(MainActivity.this, LandingActivity.class);
-                    startActivity(landingIntent);
-                    finish();
-                })
-                .setNegativeButton("No", null)
-                .show();
-    }
 
-    public void navigateToHomeFragment() {
-        Log.d("MainActivity", "Navigating to HomeFragment");
+
+    private void navigateToSettingsFragment() {
+        SettingsFragment settingsFragment = new SettingsFragment();
+        settingsFragment.setUpdateListener(this); // 'this' refers to MainActivity
 
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragment_container, new HomeFragment())
+                .replace(R.id.fragment_container, settingsFragment)
+                .addToBackStack(null)
                 .commit();
     }
-
-
 
 
 
@@ -149,6 +204,9 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
     }
 
 
-
-
+    @Override
+    public void onProfileImageUpdated() {
+        Log.d("MainActivity", "Profile image update listener triggered, refreshing image.");
+        loadProfileImage(); // Call this method to refresh the profile image
+    }
 }

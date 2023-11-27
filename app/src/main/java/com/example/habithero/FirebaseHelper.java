@@ -1,5 +1,6 @@
 package com.example.habithero;
 
+import android.net.Uri;
 import android.util.Log;
 
 import com.google.firebase.Timestamp;
@@ -7,6 +8,12 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.Source;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+//import com.google.cloud.storage.Bucket;
+//import com.google.cloud.storage.BucketInfo;
+//import com.google.cloud.storage.Storage;
+//import com.google.cloud.storage.StorageOptions;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -123,5 +130,51 @@ public class FirebaseHelper {
         void onCallback(T result);
         void onError(Exception e);
     }
+
+
+    public void saveProfileImage(String userId, byte[] imageData, FirestoreCallback<Void> callback) {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        StorageReference storageRef = storage.getReference();
+        StorageReference profileImageRef = storageRef.child("profile_images/" + userId + ".jpg");
+
+        profileImageRef.putBytes(imageData)
+                .addOnSuccessListener(taskSnapshot -> {
+                    // Update Firestore document with the URL of the uploaded image
+                    profileImageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        FirebaseFirestore db = FirebaseFirestore.getInstance();
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("profileImageUrl", uri.toString());
+                        db.collection("users").document(userId).update(updates);
+                    });
+                    callback.onCallback(null);
+                })
+                .addOnFailureListener(e -> callback.onError(e));
+    }
+
+    public void loadProfileImage(String userId, FirestoreCallback<Uri> callback) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists() && documentSnapshot.contains("profileImageUrl")) {
+                        String imageUrl = documentSnapshot.getString("profileImageUrl");
+                        callback.onCallback(Uri.parse(imageUrl));
+                    } else {
+                        callback.onError(new Exception("Profile image not found"));
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e));
+    }
+
+    public void updateProfileImageUrl(String userId, Uri newImageUrl, FirestoreCallback<Void> callback) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("profileImageUrl", newImageUrl.toString());
+
+        db.collection("users").document(userId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> callback.onCallback(null))
+                .addOnFailureListener(callback::onError);
+    }
+
 }
 
