@@ -20,49 +20,39 @@ public class CategoryListFragment extends Fragment {
     private String category;
     private TextView titleTextView;
 
-
-    @Override //receives habit category name and habit list from HabitCategorySelectionFragment
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.category_habit_selection_fragment, container, false);
 
-
         if (getArguments() != null) {
             category = getArguments().getString("category");
-            if (category == null || category.trim().isEmpty()) {
-                Log.e("CategoryListFragment", "Category is null or empty");
-                // Handle error case here
+            List<String> habitNames = getArguments().getStringArrayList("habitsList");
+            String iconUrl = getArguments().getString("iconUrl");
+
+            if (category == null || category.trim().isEmpty() || habitNames == null || iconUrl == null) {
+                Log.e("CategoryListFragment", "Category, iconUrl or habitsList is null or empty");
                 return view;
             }
+
+            List<Habit> habits = new ArrayList<>();
+            for (String habitName : habitNames) {
+                int defaultCompletionHour = 0; // Default value
+                int defaultCompletionMinute = 0; // Default value
+                habits.add(new Habit(habitName, category, defaultCompletionHour, defaultCompletionMinute, iconUrl));
+            }
+
+            titleTextView = view.findViewById(R.id.titleTextView);
+            recyclerView = view.findViewById(R.id.recyclerView);
+            recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+            habitAdapter = new HabitCategoryAdapter(habits);
+            habitAdapter.setOnItemClickListener(this::showHabitPreferenceDialog);
+            recyclerView.setAdapter(habitAdapter);
+
+            titleTextView.setText(category);
         } else {
             Log.e("CategoryListFragment", "No arguments found");
-            // Handle error case here
             return view;
         }
-
-        List<String> habitNames = DataHelper.getHabitsByCategory().get(category);
-        if (habitNames == null) {
-            Log.e("CategoryListFragment", "No habits found for category: " + category);
-            // Handle error case here
-            return view;
-        }
-
-        int categoryIcon = DataHelper.getCategoryIcon(category);
-        List<Habit> habits = new ArrayList<>();
-        for (String habitName : habitNames) {
-            int defaultCompletionHour = 0; // Default value
-            int defaultCompletionMinute = 0; // Default value
-            habits.add(new Habit(habitName, category, defaultCompletionHour, defaultCompletionMinute));
-        }
-        //set up UI
-        titleTextView = view.findViewById(R.id.titleTextView);
-        recyclerView = view.findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        habitAdapter = new HabitCategoryAdapter(habits);
-        habitAdapter.setOnItemClickListener(this::showHabitPreferenceDialog);
-        recyclerView.setAdapter(habitAdapter);
-
-        //set title to category name
-        titleTextView.setText(category);
 
         return view;
     }
@@ -72,5 +62,4 @@ public class CategoryListFragment extends Fragment {
         dialogFragment.setHabitAddListener((HabitPreferenceDialogFragment.HabitAddListener) getActivity());
         dialogFragment.show(getParentFragmentManager(), "HabitPreferenceDialog");
     }
-
 }

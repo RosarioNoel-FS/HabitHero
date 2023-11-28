@@ -1,9 +1,11 @@
 package com.example.habithero;
 
+
 import android.net.Uri;
 import android.util.Log;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -20,10 +22,12 @@ import java.util.Map;
 public class FirebaseHelper {
 
         private FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private FirebaseStorage storage = FirebaseStorage.getInstance();
 
 
 
-        // Method to fetch all habits for a specific user
+
+    // Method to fetch all habits for a specific user
         public void fetchUserHabits(String userId, final FirestoreCallback<List<Habit>> callback) {
             db.collection("users").document(userId).collection("habits")
                     .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -45,10 +49,84 @@ public class FirebaseHelper {
                     });
         }
 
+    public void loadSpecificCategoryData(String categoryName) {
+        db.collection("Category") // Replace with your collection path
+                .whereEqualTo("name", categoryName) // Use the field that identifies your category
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        for (DocumentSnapshot document : task.getResult()) {
+                            if (document.exists()) {
+                                String name = document.getString("name");
+                                List<String> habitList = (List<String>) document.get("habit_list");
+
+                                // Do something with the data, e.g., display in UI
+                                Log.d("Specific Category", "Category Name: " + name + ", Habits: " + habitList);
+                            } else {
+                                Log.d("Error", "No such category");
+                            }
+                        }
+                    } else {
+                        Log.w("Error", "Error getting documents: ", task.getException());
+                    }
+                });
+    }
+
+    public void fetchCategories(FirestoreCallback<Map<String, Category>> callback) {
+        db.collection("Category")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Map<String, Category> categories = new HashMap<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            String categoryName = document.getString("name");
+                            List<String> habitList = (List<String>) document.get("habit_list");
+                            String iconReference = document.getString("icon"); // Get icon reference path
+
+                            StorageReference iconRef = storage.getReferenceFromUrl(iconReference +"icon_images/health.png");
+                            iconRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                                // Once the URL is fetched, add it to the category object
+                                String iconUrl = uri.toString();
+                                categories.put(categoryName, new Category(categoryName, habitList, iconUrl));
+                                if (categories.size() == task.getResult().size()) {
+                                    // Ensure all categories are processed before calling the callback
+                                    callback.onCallback(categories);
+                                }
+                            }).addOnFailureListener(e -> {
+                                Log.e("FirebaseHelper", "Error fetching icon URL: " + e.getMessage(), e);
+                            });
+                        }
+                    } else {
+                        Log.e("FirebaseHelper", "Error fetching categories: " + task.getException().getMessage(), task.getException());
+                        callback.onError(task.getException());
+                    }
+                });
+    }
+
+
+    public void fetchIconUrlForCategory(String category, FirestoreCallback<String> callback) {
+        db.collection("Category")
+                .whereEqualTo("name", category)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        String iconUrl = queryDocumentSnapshots.getDocuments().get(0).getString("icon");
+                        callback.onCallback(iconUrl);
+                    } else {
+                        callback.onError(new Exception("Category not found"));
+                    }
+                })
+                .addOnFailureListener(callback::onError);
+    }
 
 
 
-        // Method to add a new habit for a user
+
+
+
+
+    // Method to add a new habit for a user
         public void addHabit(String userId, Habit habit, final FirestoreCallback<Habit> callback) {
             // Set initial values for the habit
             habit.setTimestamp(new Timestamp(new Date()));
@@ -79,7 +157,7 @@ public class FirebaseHelper {
 
 
     // Method to update an existing habit
-    public void updateHabit(String userId, Habit habit, final FirestoreCallback<Void> callback) {
+    public void updateCompletedHabit(String userId, Habit habit, final FirestoreCallback<Void> callback) {
         Log.d("FirebaseHelper", "Updating habit with ID: " + habit.getId());
 
         // Create a map for updating specific fields
@@ -167,6 +245,7 @@ public class FirebaseHelper {
                 .addOnFailureListener(callback::onError);
     }
 
+    //ToDO - Fetch Habits through firestore
     // Method to fetch predefined habits by category
     public void fetchPredefinedHabitsByCategory(String categoryName, FirestoreCallback<List<Habit>> callback) {
         db.collection("predefinedHabits").document(categoryName).collection("habits")

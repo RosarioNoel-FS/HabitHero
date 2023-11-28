@@ -80,26 +80,35 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
 
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseHelper firebaseHelper = new FirebaseHelper();
-        Habit habit = new Habit(name, category, hour, minute);
 
-        firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
-
-            // After saving the habit
+        firebaseHelper.fetchIconUrlForCategory(category, new FirebaseHelper.FirestoreCallback<String>() {
             @Override
-            public void onCallback(Habit result) {
-                Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
-                dismiss(); // Dismiss the dialog
+            public void onCallback(String iconUrl) {
+                Habit habit = new Habit(name, category, hour, minute, iconUrl);
+                firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
+                    @Override
+                    public void onCallback(Habit result) {
+                        Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
+                        dismiss(); // Dismiss the dialog
 
-                if (habitAddListener != null) {
-                    habitAddListener.onHabitAdded(result);
-                }
+                        if (habitAddListener != null) {
+                            habitAddListener.onHabitAdded(result);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
+                    }
+                });
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
+                Log.e("HabitPreferenceDialog", "Error fetching icon URL: " + e.getMessage(), e);
             }
         });
     }
+
 
 }

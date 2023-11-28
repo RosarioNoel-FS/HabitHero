@@ -1,6 +1,7 @@
 package com.example.habithero;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +13,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class HabitCategorySelectionFragment extends Fragment {
 
@@ -60,20 +62,43 @@ public class HabitCategorySelectionFragment extends Fragment {
 
     //This method passes Category info (appropriate List, Category Name) to CategoryListFragment
     private void onCategorySelected(String category) {
-        List<String> habitsList = DataHelper.getHabitsByCategory().get(category);
+        FirebaseHelper firebaseHelper = new FirebaseHelper();
+        firebaseHelper.fetchCategories(new FirebaseHelper.FirestoreCallback<Map<String, Category>>() {
+            @Override
+            public void onCallback(Map<String, Category> result) {
+                Category selectedCategory = result.get(category);
+                if (selectedCategory != null) {
+                    List<String> habitsList = selectedCategory.getHabitList();
 
-        CategoryListFragment categoryListFragment = new CategoryListFragment();
-        Bundle args = new Bundle();
-        args.putStringArrayList("habitsList", new ArrayList<>(habitsList));
-        args.putString("category", category); // Pass the category name
-        categoryListFragment.setArguments(args);
+                    CategoryListFragment categoryListFragment = new CategoryListFragment();
+                    Bundle args = new Bundle();
+                    args.putStringArrayList("habitsList", new ArrayList<>(habitsList));
+                    args.putString("category", category); // Pass the category name
+                    // You might also want to pass the icon URL
+                    args.putString("iconUrl", selectedCategory.getIconUrl());
+                    categoryListFragment.setArguments(args);
 
-        FragmentManager fragmentManager = getParentFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_container, categoryListFragment);
-        fragmentTransaction.addToBackStack(null);
-        fragmentTransaction.commit();
+                    FragmentManager fragmentManager = getParentFragmentManager();
+                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                    fragmentTransaction.replace(R.id.fragment_container, categoryListFragment);
+                    fragmentTransaction.addToBackStack(null);
+                    fragmentTransaction.commit();
+                } else {
+                    Log.e("HabitCategorySelection", "Category not found: " + category);
+                    // Handle the case where the category is not found
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("HabitCategorySelection", "Error fetching categories", e);
+                // Handle the error appropriately
+            }
+        });
     }
+
+
+
 
 
 }

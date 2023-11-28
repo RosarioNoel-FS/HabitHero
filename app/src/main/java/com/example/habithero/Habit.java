@@ -11,7 +11,7 @@ public class Habit implements Serializable {
     private transient String id; // Mark as transient to exclude from serialization
     private String name;
     private String category;
-    private int icon;
+    private String iconUrl; // Changed from int icon to String iconUrl
     private int completionHour; // Deadline hour
     private int completionMinute; // Deadline minute
     private boolean completed; // Is the habit completed?
@@ -27,10 +27,11 @@ public class Habit implements Serializable {
     }
 
     // Constructor for creating a new habit
-    public Habit(String name, String category, int completionHour, int completionMinute) {
+    // Constructor for creating a new habit
+    public Habit(String name, String category, int completionHour, int completionMinute, String iconUrl) {
         this.name = name;
         this.category = category;
-        this.icon = DataHelper.getCategoryIcon(this.category); // Assign the correct icon based on category
+        this.iconUrl = iconUrl; // Assign the icon URL
         this.completionHour = completionHour;
         this.completionMinute = completionMinute;
         this.timestamp = new Timestamp(new Date()); // Set default timestamp
@@ -121,9 +122,7 @@ public class Habit implements Serializable {
         this.completed = completed;
     }
 
-    public int getIcon() {
-        return icon;
-    }
+
 
     public String getCategory() {
         return category;
@@ -139,5 +138,12 @@ public class Habit implements Serializable {
 
     public String getName() {
         return name;
+    }
+    public String getIconUrl() {
+        return iconUrl;
+    }
+
+    public void setIconUrl(String iconUrl) {
+        this.iconUrl = iconUrl;
     }
 }

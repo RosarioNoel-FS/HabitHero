@@ -58,19 +58,19 @@ import java.util.Map;
         }
 
 
-        public static int getCategoryIcon(String category) {
-            Map<String, Integer> iconMap = new HashMap<>();
-
-            iconMap.put("Health & Fitness", R.drawable.health);
-            iconMap.put("Mindfulness & Well-being", R.drawable.mindfulness);
-            iconMap.put("Learning & Growth", R.drawable.learning);
-            iconMap.put("Creativity & Expression", R.drawable.creativity);
-            iconMap.put("Adventure & Exploration", R.drawable.adventure);
-
-            // Return the icon based on the category or a default icon if the category is not in the map
-            int icon = iconMap.getOrDefault(category, R.drawable.default_icon);
-            Log.d("DataHelper", "Category: " + category + ", Icon Resource: " + icon);
-            return icon;    }
+//        public static int getCategoryIcon(String category) {
+//            Map<String, Integer> iconMap = new HashMap<>();
+//
+//            iconMap.put("Health & Fitness", R.drawable.health);
+//            iconMap.put("Mindfulness & Well-being", R.drawable.mindfulness);
+//            iconMap.put("Learning & Growth", R.drawable.learning);
+//            iconMap.put("Creativity & Expression", R.drawable.creativity);
+//            iconMap.put("Adventure & Exploration", R.drawable.adventure);
+//
+//            // Return the icon based on the category or a default icon if the category is not in the map
+//            int icon = iconMap.getOrDefault(category, R.drawable.default_icon);
+//            Log.d("DataHelper", "Category: " + category + ", Icon Resource: " + icon);
+//            return icon;    }
 
 
     }

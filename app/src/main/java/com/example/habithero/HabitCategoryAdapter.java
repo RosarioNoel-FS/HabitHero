@@ -7,6 +7,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
+
 import java.util.List;
 
 
@@ -57,7 +60,9 @@ public class HabitCategoryAdapter extends RecyclerView.Adapter<HabitCategoryAdap
 
         public void bind(Habit habit, final HabitCategoryAdapter.OnItemClickListener listener) {
             habitTextView.setText(habit.getName());
-            iconImageView.setImageResource(habit.getIcon());
+            Glide.with(itemView.getContext())
+                    .load(habit.getIconUrl())
+                    .into(iconImageView);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {
@@ -65,5 +70,6 @@ public class HabitCategoryAdapter extends RecyclerView.Adapter<HabitCategoryAdap
                 }
             });
         }
+
     }
 }

@@ -85,7 +85,7 @@ public class HomeFragment extends Fragment {
 
                     if (now.after(deadline) && !habit.getCompleted()) {
                         habit.resetStreakCount();
-                        firebaseHelper.updateHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
+                        firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
                             @Override
                             public void onCallback(Void result) {
                                 Log.d("HomeFragment", "Streak count reset for habit ID: " + habit.getId());

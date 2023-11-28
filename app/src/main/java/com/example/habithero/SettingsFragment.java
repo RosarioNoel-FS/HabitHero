@@ -42,6 +42,7 @@ public class SettingsFragment extends Fragment {
     private FirebaseAuth mAuth;
     private FirebaseHelper firebaseHelper;
     private static final int CAMERA_PERMISSION_CODE = 100;
+    private Button fetchCategoryButton;
 
 
     // ActivityResultLaunchers
@@ -86,14 +87,18 @@ public class SettingsFragment extends Fragment {
         Button signOutButton = view.findViewById(R.id.sign_out_button);
         Button editProfileImageButton = view.findViewById(R.id.edit_profile_img_button);
         profilePreviewImage = view.findViewById(R.id.profile_preview_image);
+//        fetchCategoryButton = view.findViewById(R.id.fetchcategory_btn);
 
         signOutButton.setOnClickListener(v -> showSignOutDialog());
         editProfileImageButton.setOnClickListener(v -> showImageSelectionDialog());
+
+//        fetchCategoryButton.setOnClickListener(view1 -> firebaseHelper.loadAllCategoryData());
 
         loadProfileImage();
 
         return view;
     }
+
 
     private void showSignOutDialog() {
         new AlertDialog.Builder(getContext())
