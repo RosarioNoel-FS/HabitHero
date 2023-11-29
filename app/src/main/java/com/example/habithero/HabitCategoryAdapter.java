@@ -62,6 +62,7 @@ public class HabitCategoryAdapter extends RecyclerView.Adapter<HabitCategoryAdap
             habitTextView.setText(habit.getName());
             Glide.with(itemView.getContext())
                     .load(habit.getIconUrl())
+                    .error(R.drawable.default_icon) // Fallback image in case of error
                     .into(iconImageView);
 
             itemView.setOnClickListener(v -> {

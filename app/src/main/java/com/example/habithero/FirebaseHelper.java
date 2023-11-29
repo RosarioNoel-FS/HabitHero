@@ -81,27 +81,21 @@ public class FirebaseHelper {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String categoryName = document.getString("name");
                             List<String> habitList = (List<String>) document.get("habit_list");
-                            String iconReference = document.getString("icon"); // Get icon reference path
+                            String iconPath = document.getString("icon"); // Fetch the path
 
-                            StorageReference iconRef = storage.getReferenceFromUrl(iconReference +"icon_images/health.png");
-                            iconRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                                // Once the URL is fetched, add it to the category object
-                                String iconUrl = uri.toString();
-                                categories.put(categoryName, new Category(categoryName, habitList, iconUrl));
-                                if (categories.size() == task.getResult().size()) {
-                                    // Ensure all categories are processed before calling the callback
-                                    callback.onCallback(categories);
-                                }
-                            }).addOnFailureListener(e -> {
-                                Log.e("FirebaseHelper", "Error fetching icon URL: " + e.getMessage(), e);
-                            });
+
+                            categories.put(categoryName, new Category(categoryName, habitList, iconPath));
                         }
+                        callback.onCallback(categories);
                     } else {
                         Log.e("FirebaseHelper", "Error fetching categories: " + task.getException().getMessage(), task.getException());
                         callback.onError(task.getException());
                     }
                 });
     }
+
+
+
 
 
     public void fetchIconUrlForCategory(String category, FirestoreCallback<String> callback) {
@@ -111,14 +105,19 @@ public class FirebaseHelper {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        String iconUrl = queryDocumentSnapshots.getDocuments().get(0).getString("icon");
+                        String iconUrl = queryDocumentSnapshots.getDocuments().get(0).getString("icon");//
+                        Log.d("FirebaseHelper", "Fetched icon URL: " + iconUrl); // Added log statement
                         callback.onCallback(iconUrl);
                     } else {
                         callback.onError(new Exception("Category not found"));
                     }
                 })
-                .addOnFailureListener(callback::onError);
+                .addOnFailureListener(e -> {
+                    Log.e("FirebaseHelper", "2 Error fetching icon URL for category: " + e.getMessage(), e); // Added log statement
+                    callback.onError(e);
+                });
     }
+
 
 
 
@@ -204,7 +203,7 @@ public class FirebaseHelper {
     public void saveProfileImage(String userId, byte[] imageData, FirestoreCallback<Void> callback) {
         FirebaseStorage storage = FirebaseStorage.getInstance();
         StorageReference storageRef = storage.getReference();
-        StorageReference profileImageRef = storageRef.child("profile_images/" + userId + ".jpg");
+        StorageReference profileImageRef = storageRef.child("profile_images/" + userId + ".png");
 
         profileImageRef.putBytes(imageData)
                 .addOnSuccessListener(taskSnapshot -> {

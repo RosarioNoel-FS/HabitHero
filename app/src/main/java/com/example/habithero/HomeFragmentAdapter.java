@@ -126,6 +126,9 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                     .placeholder(R.drawable.default_icon) // Default icon in case of failure or while loading
                     .into(iconImageView);
 
+            Log.d("HomeFragmentAdapter", "Loading habit icon URL: " + habit.getIconUrl()); // Added log statement
+
+
             habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
 
             habitCheckBox.setOnClickListener(view -> {

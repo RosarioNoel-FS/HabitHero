@@ -77,35 +77,77 @@ public class HabitPreferenceDialogFragment extends DialogFragment {
     // Inside HabitPreferenceDialogFragment
     private void saveHabit(String name, String category, int hour, int minute) {
         Log.d("DebugLog", "Saving habit: " + name + ", Category: " + category);
-
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseHelper firebaseHelper = new FirebaseHelper();
 
-        firebaseHelper.fetchIconUrlForCategory(category, new FirebaseHelper.FirestoreCallback<String>() {
-            @Override
-            public void onCallback(String iconUrl) {
-                Habit habit = new Habit(name, category, hour, minute, iconUrl);
-                firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
-                    @Override
-                    public void onCallback(Habit result) {
-                        Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
-                        dismiss(); // Dismiss the dialog
+        if ("Create Your Own".equals(category)) {
+            // Directly use the icon URL for "CREATE YOUR OWN" category
+            String iconUrl = "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fcustom.png?alt=media&token=9497217b-2b82-4f49-9291-32c736f9df55";
+            Habit habit = new Habit(name, category, hour, minute, iconUrl);
+            firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
+                @Override
+                public void onCallback(Habit result) {
+                    Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
+                    dismiss(); // Dismiss the dialog
 
-                        if (habitAddListener != null) {
-                            habitAddListener.onHabitAdded(result);
+                    if (habitAddListener != null) {
+                        habitAddListener.onHabitAdded(result);
+                    }
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
+                }
+            });
+        } else {
+            // For other categories, fetch the icon URL
+            firebaseHelper.fetchIconUrlForCategory(category, new FirebaseHelper.FirestoreCallback<String>() {
+                @Override
+                public void onCallback(String iconUrl) {
+                    Habit habit = new Habit(name, category, hour, minute, iconUrl);
+                    firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
+                        @Override
+                        public void onCallback(Habit result) {
+                            Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
+                            dismiss(); // Dismiss the dialog
+
+                            if (habitAddListener != null) {
+                                habitAddListener.onHabitAdded(result);
+                            }
                         }
-                    }
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
-                    }
-                });
+                        @Override
+                        public void onError(Exception e) {
+                            Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    Log.e("HabitPreferenceDialog", "Error fetching icon URL: " + e.getMessage(), e);
+                }
+            });
+        }
+    }
+
+
+    private void saveHabitToFirebase(String userId, String name, String category, int hour, int minute, String iconUrl, FirebaseHelper firebaseHelper) {
+        Habit habit = new Habit(name, category, hour, minute, iconUrl);
+        firebaseHelper.addHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Habit>() {
+            @Override
+            public void onCallback(Habit result) {
+                Log.d("DebugLog", "Habit saved successfully. Navigating to HomeFragment.");
+                dismiss(); // Dismiss the dialog
+                if (habitAddListener != null) {
+                    habitAddListener.onHabitAdded(result);
+                }
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e("HabitPreferenceDialog", "Error fetching icon URL: " + e.getMessage(), e);
+                Log.e("HabitPreferenceDialog", "Error saving habit: " + e.getMessage(), e);
             }
         });
     }
