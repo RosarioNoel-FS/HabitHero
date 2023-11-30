@@ -134,12 +134,9 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
 
             Log.d("HomeFragmentAdapter", "Loading habit icon URL: " + habit.getIconUrl()); // Added log statement
 
-
             habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
 
             habitCheckBox.setOnClickListener(view -> {
-                progressBar.setVisibility(View.VISIBLE); // Show progress bar
-
                 AlertDialog dialog = new AlertDialog.Builder(view.getContext())
                         .setTitle("Manage Habit")
                         .setMessage("Choose your action for this habit:")
@@ -155,41 +152,57 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
 
                     if (completeButton != null) {
                         completeButton.setOnClickListener(innerView -> {
-                            habit.completeHabit();
-                            firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
-                                @Override
-                                public void onCallback(Void result) {
-                                    progressBar.setVisibility(View.GONE); // Hide progress bar on success
-                                    callback.onUpdateHabit(position, habit);
-                                }
+                            new AlertDialog.Builder(view.getContext())
+                                    .setTitle("Complete Habit")
+                                    .setMessage("Have you completed your habit for the day?")
+                                    .setPositiveButton("Yes", (confirmDialog, confirmWhich) -> {
+                                        habit.completeHabit();
+                                        firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
+                                            @Override
+                                            public void onCallback(Void result) {
+                                                Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
+                                                callback.onUpdateHabit(position, habit);
+                                            }
 
-                                @Override
-                                public void onError(Exception e) {
-                                    progressBar.setVisibility(View.GONE); // Hide progress bar on failure
-                                    Log.e("HomeFragmentAdapter", "Error updating habit completion: " + e.getMessage(), e);
-                                }
-                            });
-                            dialog.dismiss();
+                                            @Override
+                                            public void onError(Exception e) {
+                                                Log.e("HomeFragmentAdapter", "Error updating habit in Firestore: " + e.getMessage(), e);
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on failure
+                                            }
+                                        });
+                                        dialog.dismiss();
+                                    })
+                                    .setNegativeButton("No", null)
+                                    .show();
                         });
                     }
 
                     if (deleteButton != null) {
                         deleteButton.setTextColor(Color.RED);
                         deleteButton.setOnClickListener(innerView -> {
-                            firebaseHelper.deleteHabit(userId, habit.getId(), new FirebaseHelper.FirestoreCallback<Void>() {
-                                @Override
-                                public void onCallback(Void result) {
-                                    progressBar.setVisibility(View.GONE); // Hide progress bar on success
-                                    callback.onDeleteHabit(position);
-                                }
+                            new AlertDialog.Builder(view.getContext())
+                                    .setTitle("Delete Habit")
+                                    .setMessage("Are you sure you want to delete this habit? This action cannot be undone.")
+                                    .setPositiveButton("Yes, Delete", (confirmDialog, confirmWhich) -> {
+                                        firebaseHelper.deleteHabit(userId, habit.getId(), new FirebaseHelper.FirestoreCallback<Void>() {
+                                            @Override
+                                            public void onCallback(Void result) {
+                                                Log.d("HomeFragmentAdapter", "Habit deleted successfully.");
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
+                                                callback.onDeleteHabit(position);
+                                            }
 
-                                @Override
-                                public void onError(Exception e) {
-                                    progressBar.setVisibility(View.GONE); // Hide progress bar on failure
-                                    Log.e("HomeFragmentAdapter", "Error deleting habit: " + e.getMessage(), e);
-                                }
-                            });
-                            dialog.dismiss();
+                                            @Override
+                                            public void onError(Exception e) {
+                                                Log.e("HomeFragmentAdapter", "Error deleting habit: " + e.getMessage(), e);
+                                                progressBar.setVisibility(View.GONE); // Hide progress bar on failure
+                                            }
+                                        });
+                                        dialog.dismiss();
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
                         });
                     }
 
@@ -207,6 +220,7 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                 }
             });
         }
+
 
     }
 }

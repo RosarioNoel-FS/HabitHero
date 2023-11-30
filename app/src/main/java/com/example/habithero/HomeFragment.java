@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -49,6 +50,9 @@ public class HomeFragment extends Fragment {
         createFirstHabitText = view.findViewById(R.id.creat_first_habit_text);
         consistencyText = view.findViewById(R.id.consistency_text);
         progressBar = view.findViewById(R.id.progressBar);
+        ImageButton infoButton = view.findViewById(R.id.home_info_button);
+        infoButton.setOnClickListener(v -> showInfoModal());
+
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         homeAdapter = new HomeFragmentAdapter(new ArrayList<>(), this, progressBar);
@@ -168,5 +172,13 @@ public class HomeFragment extends Fragment {
                 .addToBackStack(null)
                 .commit();
 
+    }
+
+    private void showInfoModal() {
+        ModalInfoFragment modalFragment = new ModalInfoFragment();
+        getParentFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, modalFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
