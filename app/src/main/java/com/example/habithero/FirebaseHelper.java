@@ -264,5 +264,37 @@ public class FirebaseHelper {
                 });
     }
 
+    public void updateUsername(String userId, String newUsername, final FirestoreCallback<Void> callback) {
+        db.collection("users").document(userId)
+                .update("username", newUsername)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FirebaseHelper", "Username updated successfully.");
+                    callback.onCallback(null);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FirebaseHelper", "Error updating username: " + e.getMessage(), e);
+                    callback.onError(e);
+                });
+    }
+
+    // Method to load user data
+    public void loadUserData(String userId, FirestoreCallback<User> callback) {
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        User user = documentSnapshot.toObject(User.class);
+                        callback.onCallback(user);
+                    } else {
+                        callback.onError(new Exception("User not found"));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FirebaseHelper", "Error loading user data: " + e.getMessage(), e);
+                    callback.onError(e);
+                });
+    }
+
+
 }
 

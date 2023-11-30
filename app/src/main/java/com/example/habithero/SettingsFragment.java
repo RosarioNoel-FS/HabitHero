@@ -16,8 +16,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
+import com.example.habithero.User;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -46,6 +49,8 @@ public class SettingsFragment extends Fragment {
     private FirebaseHelper firebaseHelper;
     private static final int CAMERA_PERMISSION_CODE = 100;
     private Button fetchCategoryButton;
+    private TextView greetingTextView;
+
 
 
     // ActivityResultLaunchers
@@ -66,7 +71,10 @@ public class SettingsFragment extends Fragment {
                     try {
                         Bitmap bitmap = MediaStore.Images.Media.getBitmap(getActivity().getContentResolver(), uri);
                         bitmap = rotateImageIfRequired(bitmap, uri);
-                        profilePreviewImage.setImageBitmap(bitmap);
+                        Glide.with(getContext())
+                                .load(bitmap)
+                                .circleCrop() // Apply circleCrop() here too
+                                .into(profilePreviewImage);
                         saveProfileImageToFirestore(bitmap);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -91,10 +99,25 @@ public class SettingsFragment extends Fragment {
         Button signOutButton = view.findViewById(R.id.sign_out_button);
         Button editProfileImageButton = view.findViewById(R.id.edit_profile_img_button);
         profilePreviewImage = view.findViewById(R.id.profile_preview_image);
+        EditText usernameInput = view.findViewById(R.id.username_input);
+        Button updateUsernameButton = view.findViewById(R.id.update_username_button);
+        greetingTextView = view.findViewById(R.id.greeting_text_view);
+        loadUserGreeting();
+
 //        fetchCategoryButton = view.findViewById(R.id.fetchcategory_btn);
 
         signOutButton.setOnClickListener(v -> showSignOutDialog());
         editProfileImageButton.setOnClickListener(v -> showImageSelectionDialog());
+
+        updateUsernameButton.setOnClickListener(v -> {
+            String newUsername = usernameInput.getText().toString().trim();
+            if (!newUsername.isEmpty()) {
+                updateUsername(newUsername);
+            } else {
+                // Handle empty input, e.g., show a Toast
+                Toast.makeText(getContext(), "Please enter a username", Toast.LENGTH_SHORT).show();
+            }
+        });
 
 //        fetchCategoryButton.setOnClickListener(view1 -> firebaseHelper.loadAllCategoryData());
 
@@ -102,6 +125,43 @@ public class SettingsFragment extends Fragment {
 
         return view;
     }
+
+    private void loadUserGreeting() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        firebaseHelper.loadUserData(userId, new FirebaseHelper.FirestoreCallback<User>() {
+            @Override
+            public void onCallback(User user) {
+                // Assuming 'User' is your model class that includes the username
+                greetingTextView.setText("Hello, " + user.getUsername());
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("SettingsFragment", "Error loading user data: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    private void updateUsername(String newUsername) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        firebaseHelper.updateUsername(userId, newUsername, new FirebaseHelper.FirestoreCallback<Void>() {
+            @Override
+            public void onCallback(Void result) {
+                // Handle successful update, e.g., show a Toast
+                Toast.makeText(getContext(), "Username updated successfully", Toast.LENGTH_SHORT).show();
+
+                // Update the greeting text view with the new username
+                greetingTextView.setText("Hello, " + newUsername);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                // Handle error, e.g., show a Toast
+                Toast.makeText(getContext(), "Error updating username: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
 
 
     private void showSignOutDialog() {
@@ -207,8 +267,10 @@ public class SettingsFragment extends Fragment {
             @Override
             public void onError(Exception e) {
                 // If there is an error, set a default image
-                profilePreviewImage.setImageResource(R.drawable.profile_light_boy);
-            }
+                Glide.with(getContext())
+                        .load(R.drawable.profile_light_boy)
+                        .circleCrop() // Apply circleCrop() here as well
+                        .into(profilePreviewImage);            }
         });
     }
 
