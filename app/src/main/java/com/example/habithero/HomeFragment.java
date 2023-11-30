@@ -51,7 +51,7 @@ public class HomeFragment extends Fragment {
         progressBar = view.findViewById(R.id.progressBar);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        homeAdapter = new HomeFragmentAdapter(new ArrayList<>(), this,progressBar);
+        homeAdapter = new HomeFragmentAdapter(new ArrayList<>(), this, progressBar);
         recyclerView.setAdapter(homeAdapter);
 
         fabAddHabit.setOnClickListener(v -> navigateToHabitCategorySelection());
@@ -114,7 +114,7 @@ public class HomeFragment extends Fragment {
 
 
     private void updateHabitListUI(List<Habit> habits) {
-        homeAdapter = new HomeFragmentAdapter(habits, this,progressBar);
+        homeAdapter = new HomeFragmentAdapter(habits, this, progressBar);
         recyclerView.setAdapter(homeAdapter);
         updateUIBasedOnHabits(habits);
     }
@@ -133,6 +133,13 @@ public class HomeFragment extends Fragment {
             createFirstHabitText.setVisibility(View.GONE);
             consistencyText.setVisibility(View.VISIBLE);
         }
+
+        homeAdapter.setOnItemClickListener(new HomeFragmentAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(Habit habit) {
+                openDetailFragment(habit);
+            }
+        });
     }
 
     private void navigateToHabitCategorySelection() {
@@ -142,5 +149,24 @@ public class HomeFragment extends Fragment {
         fragmentTransaction.replace(R.id.fragment_container, habitCategorySelectionFragment);
         fragmentTransaction.addToBackStack(null);
         fragmentTransaction.commit();
+    }
+
+    private void openDetailFragment(Habit habit) {
+        DetailFragment detailFragment = new DetailFragment();
+        Bundle args = new Bundle();
+        args.putString("habitName", habit.getName());
+        args.putString("iconUrl", habit.getIconUrl());
+        args.putLong("timestampMillis", habit.getTimestamp().toDate().getTime()); // Convert Timestamp to milliseconds
+        args.putInt("completionCount", habit.getCompletionCount());
+        args.putInt("streakCount", habit.getStreakCount());
+        args.putBoolean("isCompleted", habit.getCompleted());
+        detailFragment.setArguments(args);
+
+
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, detailFragment)
+                .addToBackStack(null)
+                .commit();
+
     }
 }

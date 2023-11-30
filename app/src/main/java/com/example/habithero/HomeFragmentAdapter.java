@@ -85,6 +85,12 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                 notifyItemChanged(pos);
             }
         });
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null && position != RecyclerView.NO_POSITION) {
+                Habit selectedHabit = habits.get(position);
+                listener.onItemClick(selectedHabit);
+            }
+        });
     }
 
     @Override
