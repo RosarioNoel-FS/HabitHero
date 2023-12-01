@@ -27,7 +27,6 @@ public class Habit implements Serializable {
     }
 
     // Constructor for creating a new habit
-    // Constructor for creating a new habit
     public Habit(String name, String category, int completionHour, int completionMinute, String iconUrl) {
         this.name = name;
         this.category = category;

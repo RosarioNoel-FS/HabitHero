@@ -49,28 +49,7 @@ public class FirebaseHelper {
                     });
         }
 
-    public void loadSpecificCategoryData(String categoryName) {
-        db.collection("Category") // Replace with your collection path
-                .whereEqualTo("name", categoryName) // Use the field that identifies your category
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        for (DocumentSnapshot document : task.getResult()) {
-                            if (document.exists()) {
-                                String name = document.getString("name");
-                                List<String> habitList = (List<String>) document.get("habit_list");
 
-                                // Do something with the data, e.g., display in UI
-                                Log.d("Specific Category", "Category Name: " + name + ", Habits: " + habitList);
-                            } else {
-                                Log.d("Error", "No such category");
-                            }
-                        }
-                    } else {
-                        Log.w("Error", "Error getting documents: ", task.getException());
-                    }
-                });
-    }
 
     public void fetchCategories(FirestoreCallback<Map<String, Category>> callback) {
         db.collection("Category")
@@ -200,25 +179,6 @@ public class FirebaseHelper {
     }
 
 
-    public void saveProfileImage(String userId, byte[] imageData, FirestoreCallback<Void> callback) {
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-        StorageReference storageRef = storage.getReference();
-        StorageReference profileImageRef = storageRef.child("profile_images/" + userId + ".png");
-
-        profileImageRef.putBytes(imageData)
-                .addOnSuccessListener(taskSnapshot -> {
-                    // Update Firestore document with the URL of the uploaded image
-                    profileImageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        FirebaseFirestore db = FirebaseFirestore.getInstance();
-                        Map<String, Object> updates = new HashMap<>();
-                        updates.put("profileImageUrl", uri.toString());
-                        db.collection("users").document(userId).update(updates);
-                    });
-                    callback.onCallback(null);
-                })
-                .addOnFailureListener(e -> callback.onError(e));
-    }
-
     public void loadProfileImage(String userId, FirestoreCallback<Uri> callback) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("users").document(userId).get()
@@ -244,25 +204,6 @@ public class FirebaseHelper {
                 .addOnFailureListener(callback::onError);
     }
 
-    //ToDO - Fetch Habits through firestore
-    // Method to fetch predefined habits by category
-    public void fetchPredefinedHabitsByCategory(String categoryName, FirestoreCallback<List<Habit>> callback) {
-        db.collection("predefinedHabits").document(categoryName).collection("habits")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        List<Habit> habits = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Habit habit = document.toObject(Habit.class);
-                            habits.add(habit);
-                        }
-                        callback.onCallback(habits);
-                    } else {
-                        Log.e("FirebaseHelper", "Error fetching predefined habits: " + task.getException().getMessage(), task.getException());
-                        callback.onError(task.getException());
-                    }
-                });
-    }
 
     public void updateUsername(String userId, String newUsername, final FirestoreCallback<Void> callback) {
         db.collection("users").document(userId)

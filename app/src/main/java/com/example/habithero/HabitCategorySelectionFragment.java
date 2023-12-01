@@ -11,6 +11,9 @@ import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+
+import com.google.firebase.auth.FirebaseAuth;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,39 +66,57 @@ public class HabitCategorySelectionFragment extends Fragment {
     //This method passes Category info (appropriate List, Category Name) to CategoryListFragment
     private void onCategorySelected(String category) {
         FirebaseHelper firebaseHelper = new FirebaseHelper();
-        firebaseHelper.fetchCategories(new FirebaseHelper.FirestoreCallback<Map<String, Category>>() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // First, fetch the user's current habits
+        firebaseHelper.fetchUserHabits(userId, new FirebaseHelper.FirestoreCallback<List<Habit>>() {
             @Override
-            public void onCallback(Map<String, Category> result) {
-                Category selectedCategory = result.get(category);
-                if (selectedCategory != null) {
-                    List<String> habitsList = selectedCategory.getHabitList();
+            public void onCallback(List<Habit> userHabits) {
+                // Then, fetch the categories
+                firebaseHelper.fetchCategories(new FirebaseHelper.FirestoreCallback<Map<String, Category>>() {
+                    @Override
+                    public void onCallback(Map<String, Category> result) {
+                        Category selectedCategory = result.get(category);
+                        if (selectedCategory != null) {
+                            List<String> habitsList = new ArrayList<>(selectedCategory.getHabitList());
 
-                    CategoryListFragment categoryListFragment = new CategoryListFragment();
-                    Bundle args = new Bundle();
-                    args.putStringArrayList("habitsList", new ArrayList<>(habitsList));
-                    args.putString("category", category); // Pass the category name
-                    // You might also want to pass the icon URL
-                    args.putString("iconUrl", selectedCategory.getIconUrl());
-                    categoryListFragment.setArguments(args);
+                            // Remove habits that the user is already working on
+                            for (Habit userHabit : userHabits) {
+                                habitsList.remove(userHabit.getName());
+                            }
 
-                    FragmentManager fragmentManager = getParentFragmentManager();
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    fragmentTransaction.replace(R.id.fragment_container, categoryListFragment);
-                    fragmentTransaction.addToBackStack(null);
-                    fragmentTransaction.commit();
-                } else {
-                    Log.e("HabitCategorySelection", "Category not found: " + category);
-                    // Handle the case where the category is not found
-                }
+                            // Proceed to display the remaining habits
+                            CategoryListFragment categoryListFragment = new CategoryListFragment();
+                            Bundle args = new Bundle();
+                            args.putStringArrayList("habitsList", new ArrayList<>(habitsList));
+                            args.putString("category", category); // Pass the category name
+                            args.putString("iconUrl", selectedCategory.getIconUrl()); // Pass the icon URL
+                            categoryListFragment.setArguments(args);
+
+                            FragmentManager fragmentManager = getParentFragmentManager();
+                            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                            fragmentTransaction.replace(R.id.fragment_container, categoryListFragment);
+                            fragmentTransaction.addToBackStack(null);
+                            fragmentTransaction.commit();
+                        } else {
+                            Log.e("HabitCategorySelection", "Category not found: " + category);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e("HabitCategorySelection", "Error fetching categories", e);
+                    }
+                });
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e("HabitCategorySelection", "Error fetching categories", e);
-                // Handle the error appropriately
+                Log.e("HabitCategorySelection", "Error fetching user habits", e);
             }
         });
     }
+
 
 
 
