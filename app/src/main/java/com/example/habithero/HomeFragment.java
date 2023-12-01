@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -34,6 +36,7 @@ public class HomeFragment extends Fragment {
 
     private ProgressBar progressBar;
 
+
     public HomeFragment() {
         // Required empty public constructor
     }
@@ -42,6 +45,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_fragment, container, false);
         Log.d("HomeFragment", "onCreateView called");
+
 
         recyclerView = view.findViewById(R.id.rv_habits);
         fabAddHabit = view.findViewById(R.id.fab_add_habit);
@@ -105,6 +109,8 @@ public class HomeFragment extends Fragment {
 
                 Collections.sort(habits, (h1, h2) -> h2.getTimestamp().compareTo(h1.getTimestamp()));
                 updateHabitListUI(habits);
+                checkAndShowFirstHabitModal(userId, habits);
+
                 progressBar.setVisibility(View.GONE); // Hide the progress bar after processing data
             }
 
@@ -172,6 +178,22 @@ public class HomeFragment extends Fragment {
                 .addToBackStack(null)
                 .commit();
 
+    }
+
+    private void checkAndShowFirstHabitModal(String userId, List<Habit> habits) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("users").document(userId).get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                Boolean hasSeenFirstHabitModal = documentSnapshot.getBoolean("hasSeenFirstHabitModal");
+                if (hasSeenFirstHabitModal == null || !hasSeenFirstHabitModal) {
+                    if (!habits.isEmpty()) {
+                        showInfoModal();
+                        db.collection("users").document(userId)
+                                .update("hasSeenFirstHabitModal", true);
+                    }
+                }
+            }
+        }).addOnFailureListener(e -> Log.e("HomeFragment", "Error fetching user data: " + e.getMessage()));
     }
 
     private void showInfoModal() {
