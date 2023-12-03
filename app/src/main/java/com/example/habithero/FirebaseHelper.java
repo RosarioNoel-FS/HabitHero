@@ -143,6 +143,8 @@ public class FirebaseHelper {
         updates.put("completed", habit.getCompleted());
         updates.put("streakCount", habit.getStreakCount());
         updates.put("completionCount", habit.getCompletionCount());
+        updates.put("completionDates", habit.getCompletionDates()); // Make sure this line is present
+
 
         // Update only the specific fields in the document
         db.collection("users").document(userId).collection("habits").document(habit.getId())
@@ -235,6 +237,33 @@ public class FirebaseHelper {
                     callback.onError(e);
                 });
     }
+
+    public void fetchCompletionDates(String userId, String habitId, FirestoreCallback<List<String>> callback) {
+        db.collection("users").document(userId).collection("habits").document(habitId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Habit habit = documentSnapshot.toObject(Habit.class);
+                        if (habit != null && habit.getCompletionDates() != null && !habit.getCompletionDates().isEmpty()) {
+                            Log.d("FirebaseHelper", "Completion dates found: " + habit.getCompletionDates());
+                            callback.onCallback(habit.getCompletionDates());
+                        } else {
+                            Log.e("FirebaseHelper", "No completion dates found in the document");
+                            callback.onError(new Exception("No completion dates found"));
+                        }
+                    } else {
+                        Log.e("FirebaseHelper", "Habit document not found");
+                        callback.onError(new Exception("Habit not found"));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FirebaseHelper", "Error fetching completion dates: " + e.getMessage(), e);
+                    callback.onError(e);
+                });
+    }
+
+
+
 
 
 }

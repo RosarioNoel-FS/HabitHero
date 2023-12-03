@@ -59,6 +59,10 @@ public class SettingsFragment extends Fragment {
             bitmap -> {
                 if (bitmap != null) {
                     profilePreviewImage.setImageBitmap(bitmap);
+                    Glide.with(getContext())
+                            .load(bitmap)
+                            .circleCrop() // Apply circleCrop() here too
+                            .into(profilePreviewImage);
                     saveProfileImageToFirestore(bitmap);
                 }
             }

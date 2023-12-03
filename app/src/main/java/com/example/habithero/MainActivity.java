@@ -26,6 +26,8 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.jakewharton.threetenabp.AndroidThreeTen;
+
 
 public class MainActivity extends AppCompatActivity implements HabitPreferenceDialogFragment.HabitAddListener, SettingsFragment.ProfileImageUpdateListener {
 
@@ -36,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         firebaseHelper = new FirebaseHelper();
         setupActionBar();

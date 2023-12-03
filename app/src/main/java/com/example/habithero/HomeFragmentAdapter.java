@@ -10,11 +10,17 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+
+import org.threeten.bp.LocalDate;
+import org.threeten.bp.format.DateTimeFormatter;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -125,14 +131,10 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
 
         public void bind(Habit habit, final OnItemClickListener listener, FirebaseHelper firebaseHelper, String userId, int position, HabitViewHolderCallback callback) {
             habitTextView.setText(habit.getName());
-
-            // Load the icon using Glide
             Glide.with(itemView.getContext())
                     .load(habit.getIconUrl())
                     .placeholder(R.drawable.default_icon) // Default icon in case of failure or while loading
                     .into(iconImageView);
-
-            Log.d("HomeFragmentAdapter", "Loading habit icon URL: " + habit.getIconUrl()); // Added log statement
 
             habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
 
@@ -152,29 +154,31 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
 
                     if (completeButton != null) {
                         completeButton.setOnClickListener(innerView -> {
-                            new AlertDialog.Builder(view.getContext())
-                                    .setTitle("Complete Habit")
-                                    .setMessage("Have you completed your habit for the day?")
-                                    .setPositiveButton("Yes", (confirmDialog, confirmWhich) -> {
-                                        habit.completeHabit();
-                                        firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
-                                            @Override
-                                            public void onCallback(Void result) {
-                                                Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
-                                                progressBar.setVisibility(View.GONE); // Hide progress bar on success
-                                                callback.onUpdateHabit(position, habit);
-                                            }
+                            LocalDate today = LocalDate.now();
+                            LocalDate lastCompletionDate = habit.getLastCompletionDate();
 
-                                            @Override
-                                            public void onError(Exception e) {
-                                                Log.e("HomeFragmentAdapter", "Error updating habit in Firestore: " + e.getMessage(), e);
-                                                progressBar.setVisibility(View.GONE); // Hide progress bar on failure
-                                            }
-                                        });
-                                        dialog.dismiss();
-                                    })
-                                    .setNegativeButton("No", null)
-                                    .show();
+                            if (lastCompletionDate != null && lastCompletionDate.isEqual(today)) {
+                                // Habit already completed today
+                                Toast.makeText(view.getContext(), "Habit already completed today!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Proceed with completing the habit
+                                habit.completeHabit();
+                                firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
+                                    @Override
+                                    public void onCallback(Void result) {
+                                        Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
+                                        progressBar.setVisibility(View.GONE); // Hide progress bar on success
+                                        callback.onUpdateHabit(position, habit);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.e("HomeFragmentAdapter", "Error updating habit in Firestore: " + e.getMessage(), e);
+                                        progressBar.setVisibility(View.GONE); // Hide progress bar on failure
+                                    }
+                                });
+                                dialog.dismiss();
+                            }
                         });
                     }
 

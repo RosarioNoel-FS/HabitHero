@@ -18,6 +18,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.threeten.bp.LocalDate;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -73,35 +75,28 @@ public class HomeFragment extends Fragment {
     private void fetchUserHabitsAndUpdateUI() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         firebaseHelper = new FirebaseHelper();
-        progressBar.setVisibility(View.VISIBLE); // Show the progress bar when fetching data
+        progressBar.setVisibility(View.VISIBLE);
 
         firebaseHelper.fetchUserHabits(userId, new FirebaseHelper.FirestoreCallback<List<Habit>>() {
             @Override
             public void onCallback(List<Habit> habits) {
-                Calendar now = Calendar.getInstance();
+                LocalDate today = LocalDate.now();
 
                 for (Habit habit : habits) {
-                    Calendar deadline = Calendar.getInstance();
-                    deadline.set(Calendar.HOUR_OF_DAY, habit.getCompletionHour());
-                    deadline.set(Calendar.MINUTE, habit.getCompletionMinute());
-                    deadline.set(Calendar.SECOND, 0);
-                    deadline.set(Calendar.MILLISECOND, 0);
+                    LocalDate lastCompletionDate = habit.getLastCompletionDate();
 
-                    if (deadline.before(now)) {
-                        deadline.add(Calendar.DATE, 1);
-                    }
-
-                    if (now.after(deadline) && !habit.getCompleted()) {
-                        habit.resetStreakCount();
+                    // Check if the habit's last completion date is not today
+                    if (lastCompletionDate == null || !lastCompletionDate.isEqual(today)) {
+                        habit.setCompleted(false);
                         firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
                             @Override
                             public void onCallback(Void result) {
-                                Log.d("HomeFragment", "Streak count reset for habit ID: " + habit.getId());
+                                Log.d("HomeFragment", "Habit completion status reset for ID: " + habit.getId());
                             }
 
                             @Override
                             public void onError(Exception e) {
-                                Log.e("HomeFragment", "Error resetting streak count: " + e.getMessage(), e);
+                                Log.e("HomeFragment", "Error updating habit completion status: " + e.getMessage(), e);
                             }
                         });
                     }
@@ -110,17 +105,17 @@ public class HomeFragment extends Fragment {
                 Collections.sort(habits, (h1, h2) -> h2.getTimestamp().compareTo(h1.getTimestamp()));
                 updateHabitListUI(habits);
                 checkAndShowFirstHabitModal(userId, habits);
-
-                progressBar.setVisibility(View.GONE); // Hide the progress bar after processing data
+                progressBar.setVisibility(View.GONE);
             }
 
             @Override
             public void onError(Exception e) {
                 Log.e("HomeFragment", "Error fetching habits: " + e.getMessage(), e);
-                progressBar.setVisibility(View.GONE); // Hide the progress bar also in case of an error
+                progressBar.setVisibility(View.GONE);
             }
         });
     }
+
 
 
     private void updateHabitListUI(List<Habit> habits) {
@@ -164,6 +159,8 @@ public class HomeFragment extends Fragment {
     private void openDetailFragment(Habit habit) {
         DetailFragment detailFragment = new DetailFragment();
         Bundle args = new Bundle();
+        args.putString("habitId", habit.getId()); // Ensure habitId is being set here
+
         args.putString("habitName", habit.getName());
         args.putString("iconUrl", habit.getIconUrl());
         args.putLong("timestampMillis", habit.getTimestamp().toDate().getTime()); // Convert Timestamp to milliseconds

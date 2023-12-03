@@ -2,9 +2,15 @@ package com.example.habithero;
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.Exclude;
+
+import org.threeten.bp.LocalDate;
+import org.threeten.bp.format.DateTimeFormatter;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class Habit implements Serializable {
 
@@ -20,6 +26,9 @@ public class Habit implements Serializable {
 
     private int streakCount; // Count of consecutive days habit is completed
     private int completionCount; // Total count of habit completions
+
+    private List<String> completionDates;
+
 
     // Default constructor for Firebase deserialization
     public Habit() {
@@ -71,12 +80,39 @@ public class Habit implements Serializable {
     // Update habit completion and streak
     // In Habit class
     public void completeHabit() {
-        if (isCompletedBeforeDeadline()) {
-            incrementStreakCount();
+        LocalDate today = LocalDate.now();
+        LocalDate lastCompletionDate = getLastCompletionDate();
+
+        if (lastCompletionDate != null && lastCompletionDate.isEqual(today)) {
+            // Habit already completed today
+            System.out.println("Habit already completed today.");
         } else {
-            resetStreakCount();
+            if (isCompletedBeforeDeadline()) {
+                incrementStreakCount();
+            } else {
+                resetStreakCount();
+            }
+            setCompleted(true); // Mark the habit as completed
+            addCompletionDate(today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         }
-        setCompleted(true); // Mark the habit as completed
+    }
+
+
+
+    // Method to add a completion date
+    public void addCompletionDate(String date) {
+        if (completionDates == null) {
+            completionDates = new ArrayList<>();
+        }
+        completionDates.add(date);
+    }
+
+    public LocalDate getLastCompletionDate() {
+        if (completionDates != null && !completionDates.isEmpty()) {
+            String lastDateStr = completionDates.get(completionDates.size() - 1);
+            return LocalDate.parse(lastDateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        }
+        return null;
     }
 
     // Getters and Setters
@@ -144,5 +180,14 @@ public class Habit implements Serializable {
 
     public void setIconUrl(String iconUrl) {
         this.iconUrl = iconUrl;
+    }
+
+    // Getters and setters for the new field
+    public List<String> getCompletionDates() {
+        return completionDates;
+    }
+
+    public void setCompletionDates(List<String> completionDates) {
+        this.completionDates = completionDates;
     }
 }
