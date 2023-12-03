@@ -147,7 +147,7 @@
         app:mcv_showOtherDates="all" />
 
     <ImageView
-        android:id="@+id/imageView9"
+        android:id="@+id/detail_info_button"
         android:layout_width="30dp"
         android:layout_height="30dp"
         android:layout_marginTop="20dp"

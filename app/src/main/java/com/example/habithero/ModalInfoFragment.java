@@ -17,7 +17,7 @@ public class ModalInfoFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_modal_info, container, false);
+        View view = inflater.inflate(R.layout.home_info_modal, container, false);
 
         Button okButton = view.findViewById(R.id.ok_button);
         okButton.setOnClickListener(v -> dismissModal());

@@ -56,6 +56,8 @@ public class DetailFragment extends Fragment {
         streakCountTextView = view.findViewById(R.id.streak_count_textview);
         completionTextView = view.findViewById(R.id.completion_textview);
         MaterialCalendarView calendarView = view.findViewById(R.id.calendarView);
+        ImageView infoButton = view.findViewById(R.id.detail_info_button); // Assuming the ID of the info button
+        infoButton.setOnClickListener(v -> showInfoModal());
 
         // Retrieve and display habit details
         if (getArguments() != null) {
@@ -115,5 +117,13 @@ public class DetailFragment extends Fragment {
         }
 
         return view;
+    }
+
+    private void showInfoModal() {
+        InfoModalFragment infoModalFragment = new InfoModalFragment();
+        getParentFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, infoModalFragment) // Use the correct container ID
+                .addToBackStack(null)
+                .commit();
     }
 }
