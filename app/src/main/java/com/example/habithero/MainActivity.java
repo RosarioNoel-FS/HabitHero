@@ -15,9 +15,7 @@ import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -26,7 +24,6 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.auth.FirebaseAuth;
-import com.jakewharton.threetenabp.AndroidThreeTen;
 
 
 public class MainActivity extends AppCompatActivity implements HabitPreferenceDialogFragment.HabitAddListener, SettingsFragment.ProfileImageUpdateListener {
@@ -113,8 +110,6 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
         return super.onPrepareOptionsMenu(menu);
     }
 
-
-// ... [Rest of your MainActivity code]
 
 
 
@@ -212,4 +207,5 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
         Log.d("MainActivity", "Profile image update listener triggered, refreshing image.");
         loadProfileImage(); // Call this method to refresh the profile image
     }
+
 }

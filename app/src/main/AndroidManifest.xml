@@ -29,7 +29,7 @@
         <activity
             android:name=".LandingActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,10 +37,17 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".MainActivity" android:theme="@style/Theme.HabitHero"/>
-        <activity android:name=".UsernameActivity"/>
-        <activity android:name=".ProfileActivity"/>
-        <activity android:name=".SignUpActivity"/>
+        <activity android:name=".MainActivity" android:theme="@style/Theme.HabitHero"
+            android:screenOrientation="portrait"
+        />
+        <activity android:name=".UsernameActivity"
+            android:screenOrientation="portrait"
+        />
+        <activity android:name=".ProfileActivity"
+            android:screenOrientation="portrait"
+        />
+        <activity android:name=".SignUpActivity"
+            android:screenOrientation="portrait"/>
 
 
 

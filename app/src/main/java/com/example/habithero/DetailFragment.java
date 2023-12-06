@@ -1,5 +1,7 @@
 package com.example.habithero;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -10,7 +12,11 @@ import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.DayViewDecorator;
+import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
 import java.text.SimpleDateFormat;
@@ -56,8 +62,16 @@ public class DetailFragment extends Fragment {
         streakCountTextView = view.findViewById(R.id.streak_count_textview);
         completionTextView = view.findViewById(R.id.completion_textview);
         MaterialCalendarView calendarView = view.findViewById(R.id.calendarView);
-        ImageView infoButton = view.findViewById(R.id.detail_info_button); // Assuming the ID of the info button
+        ImageView infoButton = view.findViewById(R.id.detail_info_button);
         infoButton.setOnClickListener(v -> showInfoModal());
+
+        // Initialize the calendar view and decorators
+        calendarView.addDecorator(new DayNameDecorator(getContext()));
+        calendarView.addDecorator(new DayNumberDecorator(getContext()));
+        calendarView.addDecorator(new NoSelectionDecorator());
+
+
+
 
         // Retrieve and display habit details
         if (getArguments() != null) {
@@ -106,8 +120,8 @@ public class DetailFragment extends Fragment {
                             Log.e("DetailFragment", "Error parsing date: " + e.getMessage(), e);
                         }
                     }
-                    calendarView.addDecorator(new EventDecorator(completedDays));
-                }
+                    EventDecorator eventDecorator = new EventDecorator(getContext(), completedDays);
+                    calendarView.addDecorator(eventDecorator);                }
 
                 @Override
                 public void onError(Exception e) {
@@ -116,14 +130,58 @@ public class DetailFragment extends Fragment {
             });
         }
 
+        checkAndShowInfoModal();
+
+
         return view;
     }
 
     private void showInfoModal() {
-        InfoModalFragment infoModalFragment = new InfoModalFragment();
+        DetailInfoModal infoModalFragment = new DetailInfoModal();
         getParentFragmentManager().beginTransaction()
                 .add(R.id.fragment_container, infoModalFragment) // Use the correct container ID
                 .addToBackStack(null)
                 .commit();
+    }
+
+    private void setCalendarHeaderAndWeekDayColor(MaterialCalendarView calendarView) {
+        // This is a pseudo-code and might need adjustments based on MaterialCalendarView's structure
+        ViewGroup headerView = (ViewGroup) calendarView.getChildAt(0); // Assuming header is the first child
+        for (int i = 0; i < headerView.getChildCount(); i++) {
+            View child = headerView.getChildAt(i);
+            if (child instanceof TextView) {
+                ((TextView) child).setTextColor(getResources().getColor(R.color.dark_yellow)); // Set text color
+            }
+        }
+
+        // If week day labels are separate from the header, find and set their color similarly
+    }
+
+    private void checkAndShowInfoModal() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference userDocRef = db.collection("users").document(userId);
+
+        userDocRef.get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                Boolean hasSeenInfoModal = documentSnapshot.getBoolean("hasSeenInfoModal");
+                if (hasSeenInfoModal == null || !hasSeenInfoModal) {
+                    showInfoModal();
+                    userDocRef.update("hasSeenInfoModal", true);
+                }
+            }
+        }).addOnFailureListener(e -> Log.e("DetailFragment", "Error checking info modal status: " + e.getMessage()));
+    }
+}
+
+class NoSelectionDecorator implements DayViewDecorator {
+    @Override
+    public boolean shouldDecorate(CalendarDay day) {
+        return true;
+    }
+
+    @Override
+    public void decorate(DayViewFacade view) {
+        view.setSelectionDrawable(new ColorDrawable(Color.TRANSPARENT));
     }
 }

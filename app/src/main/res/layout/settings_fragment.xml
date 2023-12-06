@@ -14,7 +14,7 @@
         android:layout_marginTop="16dp"
         android:text="Hello"
         android:textColor="@color/dark_yellow"
-        android:textSize="36dp"
+        android:textSize="28dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

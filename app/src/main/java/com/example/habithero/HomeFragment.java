@@ -21,7 +21,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import org.threeten.bp.LocalDate;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
@@ -194,7 +193,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void showInfoModal() {
-        ModalInfoFragment modalFragment = new ModalInfoFragment();
+        HomeInfoModal modalFragment = new HomeInfoModal();
         getParentFragmentManager().beginTransaction()
                 .add(R.id.fragment_container, modalFragment)
                 .addToBackStack(null)
