@@ -46,72 +46,68 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="15dp"
 
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
         android:text="Habit completion total:"
         android:textColor="@color/basic_yellow"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/yellow_background" />
+        app:layout_constraintTop_toBottomOf="@+id/textView8" />
 
     <TextView
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="15dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
         android:text="Streak total:"
         android:textColor="@color/basic_yellow"
         app:layout_constraintStart_toEndOf="@+id/habit_total_textview"
-        app:layout_constraintTop_toBottomOf="@+id/yellow_background" />
+        app:layout_constraintTop_toBottomOf="@+id/completion_textview" />
 
     <TextView
         android:id="@+id/streak_count_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="10dp"
         android:text="1"
         android:textColor="@color/dark_yellow"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@+id/textView3"
-        app:layout_constraintTop_toBottomOf="@+id/yellow_background" />
+        app:layout_constraintTop_toBottomOf="@+id/completion_textview" />
 
     <TextView
         android:id="@+id/habit_total_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="10dp"
         android:text="1"
         android:textColor="@color/dark_yellow"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@+id/textView2"
-        app:layout_constraintTop_toBottomOf="@+id/yellow_background" />
+        app:layout_constraintTop_toBottomOf="@+id/textView8" />
 
     <TextView
         android:id="@+id/completion_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="5dp"
-        android:layout_marginTop="10dp"
         android:text="Completed"
         android:textColor="@color/dark_yellow"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@+id/textView8"
-        app:layout_constraintTop_toBottomOf="@+id/streak_count_textview" />
+        app:layout_constraintTop_toBottomOf="@+id/yellow_background" />
 
     <TextView
         android:id="@+id/textView8"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
         android:text="Habit status:"
         android:textColor="@color/basic_yellow"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.4"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        app:layout_constraintTop_toBottomOf="@+id/yellow_background" />
 
     <TextView
         android:id="@+id/textView9"
@@ -136,18 +132,56 @@
         app:layout_constraintStart_toEndOf="@+id/textView9"
         app:layout_constraintTop_toBottomOf="@+id/detail_imageview_detail" />
 
+    <!-- New TextView for Completion Target -->
+    <TextView
+        android:id="@+id/completion_target_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
+        android:text="Target: 5 times per day"
+        android:textColor="@color/dark_yellow"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@+id/frequency_textview"
+        app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+    <!-- New TextView for Reminders -->
+    <TextView
+        android:id="@+id/reminders_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Reminders: 8:00 AM, 12:00 PM"
+        android:textColor="@color/dark_yellow"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/completion_target_textview" />
+
+
+    <TextView
+        android:id="@+id/frequency_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
+        android:text="Frequency"
+        android:textColor="@color/dark_yellow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/habit_total_textview" />
+
     <com.prolificinteractive.materialcalendarview.MaterialCalendarView
         android:id="@+id/calendarView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="30dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/completion_textview"
+        app:layout_constraintTop_toBottomOf="@+id/reminders_textview"
         app:mcv_selectionColor="@color/dark_yellow"
         app:mcv_showOtherDates="all" />
 

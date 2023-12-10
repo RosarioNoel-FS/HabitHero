@@ -36,9 +36,13 @@ public class CategoryListFragment extends Fragment {
 
             List<Habit> habits = new ArrayList<>();
             for (String habitName : habitNames) {
-                int defaultCompletionHour = 0; // Default value
-                int defaultCompletionMinute = 0; // Default value
-                habits.add(new Habit(habitName, category, defaultCompletionHour, defaultCompletionMinute, iconUrl));
+                int defaultCompletionHour = 0;
+                int defaultCompletionMinute = 0;
+                String defaultFrequency = "defaultFrequency"; // Default or placeholder value
+                int defaultDailyCompletionTarget = 1; // Default or placeholder value
+                List<String> defaultReminderTimes = new ArrayList<>(); // Default or placeholder value
+
+                habits.add(new Habit(habitName, category, defaultCompletionHour, defaultCompletionMinute, iconUrl, defaultFrequency, defaultDailyCompletionTarget, defaultReminderTimes));
             }
 
             titleTextView = view.findViewById(R.id.titleTextView);

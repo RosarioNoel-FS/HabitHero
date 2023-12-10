@@ -3,6 +3,7 @@ package com.example.habithero;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,6 +38,10 @@ public class DetailFragment extends Fragment {
     private TextView habitTotalTextView;
     private TextView streakCountTextView;
     private TextView completionTextView;
+    private TextView frequencyTextView;
+    private TextView completionTargetTextView;
+    private TextView remindersTextView;
+    private MaterialCalendarView calendarView;
 
 
     private String habitName;
@@ -54,87 +59,108 @@ public class DetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.detail_fragment, container, false);
 
-        // Initialize views
+        initializeViews(view);
+
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        String habitId = getArguments() != null ? getArguments().getString("habitId") : null;
+        if (habitId != null) {
+            fetchHabitDetails(userId, habitId);
+        } else {
+            Log.e("DetailFragment", "Habit ID is null");
+        }
+
+        return view;
+    }
+
+
+    private void initializeViews(View view) {
         detailImageView = view.findViewById(R.id.detail_imageview_detail);
         titleTextView = view.findViewById(R.id.title_textview_detail);
         startDateTextView = view.findViewById(R.id.start_date_textview);
         habitTotalTextView = view.findViewById(R.id.habit_total_textview);
         streakCountTextView = view.findViewById(R.id.streak_count_textview);
         completionTextView = view.findViewById(R.id.completion_textview);
-        MaterialCalendarView calendarView = view.findViewById(R.id.calendarView);
+        frequencyTextView = view.findViewById(R.id.frequency_textview);
+        completionTargetTextView = view.findViewById(R.id.completion_target_textview);
+        remindersTextView = view.findViewById(R.id.reminders_textview);
+        calendarView = view.findViewById(R.id.calendarView);
+        setupCalendarView();
+
         ImageView infoButton = view.findViewById(R.id.detail_info_button);
         infoButton.setOnClickListener(v -> showInfoModal());
+    }
 
-        // Initialize the calendar view and decorators
+    private void setupCalendarView() {
+
         calendarView.addDecorator(new DayNameDecorator(getContext()));
         calendarView.addDecorator(new DayNumberDecorator(getContext()));
         calendarView.addDecorator(new NoSelectionDecorator());
+    }
 
 
-
-
-        // Retrieve and display habit details
-        if (getArguments() != null) {
-            habitName = getArguments().getString("habitName");
-            iconUrl = getArguments().getString("iconUrl");
-            timestampMillis = getArguments().getLong("timestampMillis");
-            completionCount = getArguments().getInt("completionCount");
-            streakCount = getArguments().getInt("streakCount");
-            isCompleted = getArguments().getBoolean("isCompleted");
-
-            titleTextView.setText(habitName);
-            Glide.with(this)
-                    .load(iconUrl)
-                    .placeholder(R.drawable.detail_placeholder_img) // Placeholder image
-                    .into(detailImageView);
-
-            SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
-            startDateTextView.setText(dateFormat.format(new Date(timestampMillis)));
-
-            habitTotalTextView.setText(String.valueOf(completionCount));
-            streakCountTextView.setText(String.valueOf(streakCount));
-            completionTextView.setText(isCompleted ? "Completed" : "Incomplete");
-
-            // Fetch and display completion dates
-            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            String habitId = getArguments().getString("habitId");
-
-            if (habitId == null) {
-                Log.e("DetailFragment", "habitId is null");
-                // Handle the error here
-                return view; // Exit the method to prevent further execution
+    private void fetchHabitDetails(String userId, String habitId) {
+        FirebaseHelper firebaseHelper = new FirebaseHelper();
+        firebaseHelper.fetchUserHabits(userId, new FirebaseHelper.FirestoreCallback<List<Habit>>() {
+            @Override
+            public void onCallback(List<Habit> habits) {
+                for (Habit habit : habits) {
+                    if (habit.getId().equals(habitId)) {
+                        setHabitDetails(habit);
+                        break;
+                    }
+                }
             }
 
-            FirebaseHelper firebaseHelper = new FirebaseHelper();
-            firebaseHelper.fetchCompletionDates(userId, habitId, new FirebaseHelper.FirestoreCallback<List<String>>() {
-                @Override
-                public void onCallback(List<String> completionDates) {
-                    List<CalendarDay> completedDays = new ArrayList<>();
-                    for (String dateString : completionDates) {
-                        try {
-                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault());
-                            LocalDate localDate = LocalDate.parse(dateString, formatter);
-                            CalendarDay day = CalendarDay.from(localDate);
-                            completedDays.add(day);
-                        } catch (Exception e) {
-                            Log.e("DetailFragment", "Error parsing date: " + e.getMessage(), e);
-                        }
-                    }
-                    EventDecorator eventDecorator = new EventDecorator(getContext(), completedDays);
-                    calendarView.addDecorator(eventDecorator);                }
-
-                @Override
-                public void onError(Exception e) {
-                    Log.e("DetailFragment", "Error fetching completion dates: " + e.getMessage(), e);
-                }
-            });
-        }
-
-        checkAndShowInfoModal();
-
-
-        return view;
+            @Override
+            public void onError(Exception e) {
+                Log.e("DetailFragment", "Error fetching habit details: " + e.getMessage(), e);
+            }
+        });
     }
+
+    private void setHabitDetails(Habit habit) {
+        titleTextView.setText(habit.getName());
+        Glide.with(this).load(habit.getIconUrl()).placeholder(R.drawable.detail_placeholder_img).into(detailImageView);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
+        startDateTextView.setText(dateFormat.format(new Date(habit.getTimestamp().toDate().getTime())));
+        habitTotalTextView.setText(String.valueOf(habit.getCompletionCount()));
+        streakCountTextView.setText(String.valueOf(habit.getStreakCount()));
+        completionTextView.setText(habit.getCompleted() ? "Completed" : "Incomplete");
+
+        frequencyTextView.setText("Frequency: " + habit.getFrequency());
+        completionTargetTextView.setText("Target: " + habit.getDailyCompletionTarget());
+        remindersTextView.setText("Reminders: " + TextUtils.join(", ", habit.getReminderTimes()));
+
+        List<CalendarDay> completedDays = new ArrayList<>();
+        for (String dateString : habit.getCompletionDates()) {
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault());
+                LocalDate localDate = LocalDate.parse(dateString, formatter);
+                CalendarDay day = CalendarDay.from(localDate);
+                completedDays.add(day);
+            } catch (Exception e) {
+                Log.e("DetailFragment", "Error parsing date: " + e.getMessage(), e);
+            }
+        }
+        calendarView.addDecorator(new EventDecorator(getContext(), completedDays));
+
+    }
+
+    private void setCompletionDates(MaterialCalendarView calendarView, List<String> completionDates) {
+        List<CalendarDay> completedDays = new ArrayList<>();
+        for (String dateString : completionDates) {
+            try {
+                LocalDate localDate = LocalDate.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                completedDays.add(CalendarDay.from(localDate));
+            } catch (Exception e) {
+                Log.e("DetailFragment", "Error parsing date: " + e.getMessage(), e);
+            }
+        }
+        EventDecorator eventDecorator = new EventDecorator(getContext(), completedDays);
+        calendarView.addDecorator(eventDecorator);
+    }
+
 
     private void showInfoModal() {
         DetailInfoModal infoModalFragment = new DetailInfoModal();

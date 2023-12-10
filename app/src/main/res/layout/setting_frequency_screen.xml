@@ -1,0 +1,54 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/labelFrequency"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="How often will this habit be completed?"
+        android:layout_marginBottom="20dp"
+ />
+
+
+    <!-- Frequency Options -->
+    <!-- Use RadioButtons within a RadioGroup for single selection -->
+    <RadioGroup
+        android:id="@+id/radioGroupFrequency"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:id="@+id/radioDaily"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Daily - (Everyday)"/>
+
+        <RadioButton
+            android:id="@+id/radioWeekly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Weekly - (Once a week at the same time)"/>
+        <RadioButton
+            android:id="@+id/radioWeekly_multipul"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom - (Selected days throughout the week)"/>
+
+
+        <!-- ... other frequency options (e.g., Weekly, Bi-Weekly) ... -->
+
+    </RadioGroup>
+
+    <!-- Next Button -->
+    <Button
+        android:id="@+id/btnNextFrequency"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Next"
+        android:layout_marginTop="24dp"/>
+
+</LinearLayout>

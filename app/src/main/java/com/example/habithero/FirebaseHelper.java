@@ -14,6 +14,7 @@ import com.google.firebase.storage.StorageReference;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,10 @@ public class FirebaseHelper {
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 Habit habit = document.toObject(Habit.class);
                                 habit.setId(document.getId());
+                                habit.setFrequency(document.getString("frequency"));
+                                habit.setDailyCompletionTarget(document.getLong("dailyCompletionTarget").intValue());
+                                habit.setReminderTimes((List<String>) document.get("reminderTimes"));
+
                                 habits.add(habit);
                                 Log.d("FirebaseHelper", "Fetched Habit ID: " + habit.getId() + ", Name: " + habit.getName());
                             }
@@ -116,6 +121,10 @@ public class FirebaseHelper {
                         // Fetch the document ID and set it as the habit's ID
                         String habitId = documentReference.getId();
                         habit.setId(habitId);
+                        habit.setFrequency("Daily"); // Example, set actual frequency
+                        habit.setDailyCompletionTarget(1); // Example, set actual target
+                        habit.setReminderTimes(new ArrayList<>(Arrays.asList("09:00", "18:00"))); // Example, set actual reminders
+
 
                         Log.d("FirebaseHelper", "Habit successfully added to Firestore with ID: " + habitId);
 

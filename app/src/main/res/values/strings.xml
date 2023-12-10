@@ -1,5 +1,21 @@
 <resources>
     <string name="app_name">HabitHero</string>
     <string name="default_web_client_id">68119956853-r0jd6k9oab2g3kc5v9j9kpi8hfrdgkb1.apps.googleusercontent.com</string>
+    <string-array name="frequency_options">
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>Bi-Weekly</item>
+        <item>Monthly</item>
+    </string-array>
+
+    <string-array name="days_of_week">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wensday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
 
 </resources>

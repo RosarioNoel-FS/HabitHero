@@ -64,6 +64,8 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
     public void onBindViewHolder(@NonNull HabitViewHolder holder, int position) {
         Habit habit = habits.get(position);
         holder.habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
+
+
         holder.bind(habit, listener, firebaseHelper, FirebaseAuth.getInstance().getCurrentUser().getUid(), position, new HabitViewHolderCallback() {
             public void onDeleteHabit(int position) {
                 if (!habits.isEmpty() && position >= 0 && position < habits.size()) {

@@ -1,36 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/white"
     android:padding="16dp">
 
-    <!-- Text for Habit Deadline Time Picker -->
+    <!-- Frequency Label -->
+    <TextView
+        android:id="@+id/labelFrequency"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="How often will this habit be completed?"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Frequency Selection Spinner -->
+    <Spinner
+        android:id="@+id/spinnerFrequency"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/labelFrequency"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Completion Count Label -->
+    <TextView
+        android:id="@+id/labelCompletionCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="How often will you do this habit in the set period?"
+        app:layout_constraintTop_toBottomOf="@id/spinnerFrequency"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Completion Count NumberPicker -->
+    <NumberPicker
+        android:id="@+id/numberPickerCompletionCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/labelCompletionCount"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Existing Text for Habit Deadline Time Picker -->
     <TextView
         android:id="@+id/textViewDeadline"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textColor="@color/background_color"
         android:text="Your habit will be due everyday at this time:"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/numberPickerCompletionCount"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Habit Deadline Time Picker -->
+    <!-- Existing Habit Deadline Time Picker -->
     <TimePicker
         android:id="@+id/timePickerDeadline"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:timePickerMode="spinner"
-
         app:layout_constraintTop_toBottomOf="@id/textViewDeadline"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
 
-    <!-- Confirm Button -->
+
+    <!-- Reminder Switch -->
+    <Switch
+        android:id="@+id/switchReminders"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set Reminders"
+        app:layout_constraintTop_toBottomOf="@id/timePickerDeadline"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Placeholder for Dynamic Reminder TimePickers -->
+    <!-- You will need to add TimePickers programmatically based on the Switch state -->
+
+    <!-- Container for Dynamic Reminder TimePickers -->
+    <LinearLayout
+        android:id="@+id/reminderTimePickerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintTop_toBottomOf="@id/switchReminders"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <!-- TimePickers will be added here programmatically -->
+    </LinearLayout>
+
+    <!-- Existing Confirm and Cancel Buttons -->
     <Button
         android:id="@+id/buttonConfirm"
         android:layout_width="200dp"
@@ -39,8 +98,7 @@
         android:text="Confirm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/timePickerDeadline"
-         />
+        app:layout_constraintTop_toBottomOf="@id/switchReminders" />
 
     <Button
         android:id="@+id/buttonCancel"
@@ -53,7 +111,37 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/buttonConfirm"
-        app:layout_constraintWidth_percent="0.3" />
+        app:layout_constraintWidth_percent="0.3" /><!-- Reminder Confirm Button -->
+    <Button
+        android:id="@+id/buttonReminderConfirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set Reminder"
+        android:visibility="gone"
+        android:background="@drawable/rounded_button_dark"
+        app:layout_constraintTop_toBottomOf="@id/reminderTimePickerContainer"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Reminder Cancel Button -->
+    <Button
+        android:id="@+id/buttonReminderCancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cancel Reminder"
+        android:visibility="gone"
+        android:background="@drawable/rounded_button_light"
+        app:layout_constraintTop_toBottomOf="@id/buttonReminderConfirm"
+        app:layout_constraintStart_toStartOf="parent" />
+    <!-- Reminder Time Display -->
+    <TextView
+        android:id="@+id/textViewReminderTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reminder Time: None"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/buttonReminderCancel"
+        app:layout_constraintStart_toStartOf="parent" />
+
 
 
 

@@ -26,7 +26,7 @@ import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.auth.FirebaseAuth;
 
 
-public class MainActivity extends AppCompatActivity implements HabitPreferenceDialogFragment.HabitAddListener, SettingsFragment.ProfileImageUpdateListener {
+public class MainActivity extends AppCompatActivity implements HabitPreferenceDialogFragment.HabitAddListener, SettingsFragment.ProfileImageUpdateListener, HabitNameScreen.HabitNameScreenListener {
 
     private Uri profileImageUri;
     private FirebaseHelper firebaseHelper;
@@ -207,5 +207,25 @@ public class MainActivity extends AppCompatActivity implements HabitPreferenceDi
         Log.d("MainActivity", "Profile image update listener triggered, refreshing image.");
         loadProfileImage(); // Call this method to refresh the profile image
     }
+
+
+
+    // CALL BACKS
+    // In MainActivity
+    @Override
+    public void onHabitNameConfirmed(String habitName) {
+        FrequencySelectionScreen frequencySelectionScreen = new FrequencySelectionScreen();
+        Bundle args = new Bundle();
+        args.putString("habitName", habitName);
+        frequencySelectionScreen.setArguments(args);
+
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, frequencySelectionScreen)
+                .addToBackStack(null)
+                .commit();
+    }
+
+
 
 }

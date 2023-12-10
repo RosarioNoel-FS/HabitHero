@@ -1,0 +1,90 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Days of the Week Selection -->
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select the days you wish to complete your habit"
+        android:layout_margin="20dp"/>
+
+    <CheckBox
+        android:id="@+id/checkboxMonday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Monday"/>
+
+    <CheckBox
+        android:id="@+id/checkboxTuesday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tuesday"/>
+
+    <CheckBox
+        android:id="@+id/checkboxWednesday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wednesday"/>
+
+    <CheckBox
+        android:id="@+id/checkboxThursday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Thursday"/>
+
+    <CheckBox
+        android:id="@+id/checkboxFriday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Friday"/>
+
+    <CheckBox
+        android:id="@+id/checkboxSaturday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Saturday"/>
+
+    <CheckBox
+        android:id="@+id/checkboxSunday"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sunday"/>
+
+    <!-- Container for Time and Reminder Options -->
+    <LinearLayout
+        android:id="@+id/containerTimeAndReminders"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <!-- Dynamic content for time pickers and reminder switches will be added here -->
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="16dp">
+
+        <!-- Cancel Button -->
+        <Button
+            android:id="@+id/btnCancelCustom"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"/>
+
+        <!-- Confirm Button -->
+        <Button
+            android:id="@+id/btnNextCustom"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Next"/>
+    </LinearLayout>
+
+</LinearLayout>

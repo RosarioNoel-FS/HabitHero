@@ -1,0 +1,61 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/textinfo2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/background_color"
+        android:text="This will be your habits weekly deadline"
+        android:layout_marginBottom="20dp"
+        />
+
+    <TextView
+        android:id="@+id/textinfo1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/background_color"
+        android:text="Select a day of the week and select a time:"
+        android:layout_marginBottom="20dp"
+        />
+
+
+    <!-- Day of Week Selector -->
+    <Spinner
+        android:id="@+id/spinnerDayOfWeek"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- Time Picker for Weekly Habit -->
+    <TimePicker
+        android:id="@+id/timePickerWeekly"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- Reminder Setup -->
+    <Switch
+        android:id="@+id/switchReminderWeekly"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set Reminder"/>
+
+    <!-- Reminder Time Picker (Hidden initially) -->
+    <TimePicker
+        android:id="@+id/timePickerReminderWeekly"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"/>
+
+    <Button
+        android:id="@+id/week_next_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Next
+" />
+
+
+</LinearLayout>
