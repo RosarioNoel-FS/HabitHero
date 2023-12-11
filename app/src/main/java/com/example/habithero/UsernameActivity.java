@@ -36,6 +36,8 @@ public class UsernameActivity extends AppCompatActivity {
             String username = usernameEditText.getText().toString().trim();
             String validationMessage = isValidUsername(username);
             if (!"OK".equals(validationMessage)) {
+                SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
                 Toast.makeText(this, validationMessage, Toast.LENGTH_SHORT).show();
             } else {
                 checkUsernameUnique(username);
@@ -99,13 +101,18 @@ public class UsernameActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (queryDocumentSnapshots.isEmpty()) {
+                        SoundHelper.playSound(this, SoundHelper.SoundType.COMPLETION);
+
                         saveUsernameToFirestore(username);
                     } else {
                         Toast.makeText(UsernameActivity.this, "Username already exists. Please choose another.", Toast.LENGTH_SHORT).show();
+                        SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
                     }
                 })
                 .addOnFailureListener(e -> {
                     Log.e("UsernameActivity", "Error checking username uniqueness: " + e.getMessage(), e);
+                    SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
                     Toast.makeText(UsernameActivity.this, "Error checking username. Please try again.", Toast.LENGTH_SHORT).show();
                 });
     }

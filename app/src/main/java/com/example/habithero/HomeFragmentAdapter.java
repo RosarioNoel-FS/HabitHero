@@ -1,7 +1,9 @@
 package com.example.habithero;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -139,6 +141,7 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
             habitCheckBox.setImageResource(habit.getCompleted() ? R.drawable.checked_box : R.drawable.unchecked_box);
 
             habitCheckBox.setOnClickListener(view -> {
+                SoundHelper.playSound(view.getContext(), SoundHelper.SoundType.CLICK);
                 AlertDialog dialog = new AlertDialog.Builder(view.getContext())
                         .setTitle("Manage Habit")
                         .setMessage("Choose your action for this habit:")
@@ -160,13 +163,18 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                             if (lastCompletionDate != null && lastCompletionDate.isEqual(today)) {
                                 // Habit already completed today
                                 Toast.makeText(view.getContext(), "Habit already completed today!", Toast.LENGTH_SHORT).show();
+                                SoundHelper.playSound(view.getContext(), SoundHelper.SoundType.DENY);
+
                             } else {
                                 // Proceed with completing the habit
                                 habit.completeHabit();
+                                SoundHelper.playSound(view.getContext(), SoundHelper.SoundType.COMPLETION);
+
                                 firebaseHelper.updateCompletedHabit(userId, habit, new FirebaseHelper.FirestoreCallback<Void>() {
                                     @Override
                                     public void onCallback(Void result) {
                                         Log.d("HomeFragmentAdapter", "Habit updated successfully in Firestore.");
+
                                         progressBar.setVisibility(View.GONE); // Hide progress bar on success
                                         callback.onUpdateHabit(position, habit);
                                     }
@@ -193,6 +201,7 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
                                             @Override
                                             public void onCallback(Void result) {
                                                 Log.d("HomeFragmentAdapter", "Habit deleted successfully.");
+                                                SoundHelper.playSound(view.getContext(), SoundHelper.SoundType.DELETE);
                                                 progressBar.setVisibility(View.GONE); // Hide progress bar on success
                                                 callback.onDeleteHabit(position);
                                             }
@@ -212,6 +221,7 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
 
                     if (cancelButton != null) {
                         cancelButton.setOnClickListener(innerView -> dialog.dismiss());
+
                     }
                 });
 
@@ -219,12 +229,19 @@ public class HomeFragmentAdapter extends RecyclerView.Adapter<HomeFragmentAdapte
             });
 
             itemView.setOnClickListener(v -> {
+
                 if (listener != null && getAdapterPosition() != RecyclerView.NO_POSITION) {
                     listener.onItemClick(habit);
+                    SoundHelper.playSound(v.getContext(), SoundHelper.SoundType.TAP);
+
+
                 }
+
             });
+
         }
 
 
     }
+
 }

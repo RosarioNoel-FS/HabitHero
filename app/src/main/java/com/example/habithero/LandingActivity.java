@@ -1,6 +1,7 @@
 package com.example.habithero;
 
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -57,15 +58,20 @@ public class LandingActivity extends AppCompatActivity {
 
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Please enter both email and password.", Toast.LENGTH_SHORT).show();
+            SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
             return;
         }
 
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
+                        SoundHelper.playSound(this, SoundHelper.SoundType.COMPLETION);
                         navigateToMainActivity();
                     } else {
                         Toast.makeText(LandingActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                        SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
                     }
                 });
     }
@@ -92,9 +98,13 @@ public class LandingActivity extends AppCompatActivity {
                     firebaseAuthWithGoogle(account.getIdToken());
                 } else {
                     Toast.makeText(this, "Sign in failed: Account details not found.", Toast.LENGTH_SHORT).show();
+                    SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
                 }
             } catch (ApiException e) {
                 Toast.makeText(this, "Google sign in failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
             }
         }
     }
@@ -106,15 +116,26 @@ public class LandingActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         boolean isNewUser = task.getResult().getAdditionalUserInfo().isNewUser();
                         if (isNewUser) {
+                            SoundHelper.playSound(this, SoundHelper.SoundType.COMPLETION);
+
                             Toast.makeText(LandingActivity.this, "Welcome! Please set your username.", Toast.LENGTH_SHORT).show();
                             startActivity(new Intent(LandingActivity.this, UsernameActivity.class));
                         } else {
+                            SoundHelper.playSound(this, SoundHelper.SoundType.COMPLETION);
                             Toast.makeText(LandingActivity.this, "Successfully signed in", Toast.LENGTH_SHORT).show();
                             startActivity(new Intent(LandingActivity.this, MainActivity.class));
                         }
                     } else {
                         Toast.makeText(LandingActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
+                        SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
                     }
                 });
     }
+
+//    private void playSignInSound() {
+//        MediaPlayer mediaPlayer = MediaPlayer.create(this, R.raw.next_sound);
+//        mediaPlayer.setOnCompletionListener(MediaPlayer::release);
+//        mediaPlayer.start();
+//    }
 }

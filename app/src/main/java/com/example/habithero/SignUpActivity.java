@@ -37,19 +37,25 @@ public class SignUpActivity extends AppCompatActivity {
 
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Email and password cannot be empty", Toast.LENGTH_SHORT).show();
+            SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
             return;
         }
 
         if (!password.equals(confirmPassword)) {
             Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
+            SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
+
             return;
         }
 
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
+                        SoundHelper.playSound(this, SoundHelper.SoundType.NEXT);
                         navigateToUsernameActivity();
                     } else {
+                        SoundHelper.playSound(this, SoundHelper.SoundType.DENY);
                         Toast.makeText(SignUpActivity.this, "Authentication failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
