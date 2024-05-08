@@ -1,53 +1,56 @@
-# HabitHero
-Welcome to the Habit Hero app, your new companion in building and maintaining healthy habits! Designed with a focus on simplicity, effectiveness, and user engagement, Habit Hero is here to help you transform your daily routines into powerful habits that stick.
+# Habit Hero
 
-Features
-# Category Management: 
-Organize your habits with custom categories, each featuring a unique name, list, and icon for easy identification.
-# Habit Tracking:
-Create habits with detailed settings, including name, category, icon, and tracking of completion times and streaks.
-Firebase Integration: Secure and efficient handling of data, including habit tracking, user authentication, and profile management.
-User-Friendly Interface: Navigate effortlessly through the app with a clean and intuitive UI, designed for an optimal user experience.
-# Habit Customization:
-Tailor your habits according to your personal goals and preferences.
-# Completion and Deletion:
-Mark habits as completed or delete them as needed, keeping your habit list relevant and up-to-date.
-Detailed Habit Information: Access in-depth details of your habits, including statistics and a calendar view for tracking progress.
-Interactive Feedback: Engage with various modals and dialogs that guide you through habit creation, setting preferences, and more.
-Profile Management: Sign in with Google or email, set up your profile, and personalize your Habit Hero experience.
-Technical Overview
-Classes and Key Components
-# Category & Habit Classes:
-Represent the core data structures for managing habits and their categorization.
-# FirebaseHelper:
-Facilitates all interactions with Firebase, ensuring data integrity and security.
-# MainActivity & Fragments:
-Handle the primary UI and navigation within the app, including the home screen, habit details, and settings.
-Adapters and ViewHolders: Manage the display of habit and category lists, ensuring dynamic updates and user interactions.
-# DialogFragments:
-Support custom habit creation and setting preferences, enhancing the user experience with interactive dialogs.
-User Walkthrough
-# Start on the Landing Screen:
-Choose to log in with Google, email, or sign up for a new account.
-# Main Screen Navigation:
-After logging in, explore your habits on the HomeFragment or navigate using the bottom bar.
-Creating a Habit: Use the FAB in HomeFragment to select a category and define your habit's details.
-Completing and Deleting Habits: Update your habit's status directly from the HomeFragment, with changes reflected in real-time.
-Viewing Habit Details: Access in-depth information about your habits, including progress and streaks, in the DetailFragment.
-# Daily Updates and Interactions:
-The app dynamically updates based on your interactions, encouraging consistent habit tracking.
-Development and Design
-Habit Hero was meticulously planned and developed with a focus on user needs and market research. The development process included:
+**Habit Hero** is a mobile application designed to help users track and manage their habits effectively. It utilizes a user-friendly interface on both emulators and physical devices to ensure optimal performance and user experience.
 
-# Market Research:
-Understanding user needs and the competitive landscape.
-# Branding and Design:
-Crafting a unique identity and user-friendly design for the app.
-# User Stories and Testing:
-Gathering feedback and iterating on the design to ensure a seamless user experience.
-# Technical Implementation: Building the app with a solid front-end and back-end foundation, leveraging Firebase for data management.
-# Conclusion
-Habit Hero is more than just an app; it's your personal guide to building a better you, one habit at a time. With its user-centric design, comprehensive tracking features, and engaging user interface, Habit Hero stands ready to support your journey towards healthier habits and a more fulfilling life.
+## Application Overview
 
-Thank you for choosing Habit Hero. Let's embark on this journey together!
+### Authentication
+- Google Sign-In and email/password authentication via Firebase.
+
+### Initial Setup
+- New users set up their username upon first sign-in, leading to the main navigation.
+
+### Main Interface
+- Bottom navigation bar with Home and Rewards sections.
+- Home screen prompts users to create habits if none are set.
+
+### Habit Management
+- Users can create habits via a floating action button that opens the Habit Category screen.
+- Habit categories include:
+  - Health & Fitness
+  - Mindfulness & Wellbeing
+  - Learning & Growth
+  - Creativity & Expression
+  - Adventure & Exploration
+- Features include setting habit deadlines, tracking streaks, and managing habits through a detailed view interface.
+
+### Settings and Data Management
+- Options to modify username and sign out.
+- All data is securely managed through Firebase Firestore and Realtime Database.
+
+### Device Compatibility
+- Tested on Pixel 7 (API 30-32), Samsung Ultra 22 and 23.
+
+## GitHub Commit Summary
+
+### Major Milestones
+- **Alpha Version (Nov 19, 2023):** Foundation of the app with CRUD operations for habit management.
+- **UI Overhauls (Nov 17 & Dec 19, 2023):** Major updates to the Home screen and habit management UI, enhancing usability and aesthetics.
+- **Release Candidate (Dec 14, 2023):** Application achieved a bug-free state with all features implemented.
+
+### Feature Implementation Timeline
+- **Google Sign-In (Oct 26, 2023):** Integrated Google authentication.
+- **Habit Tracking and Management (Nov 15-22, 2023):** Implemented custom habit creation, completion, and deletion functionalities.
+- **UI and Usability Enhancements (Dec 1-10, 2023):** Added informative modals and sound feedback for a better user experience.
+- **Stability and Data Management Fixes (Nov 26 - Dec 2, 2023):** Resolved issues related to profile image handling and habit data synchronization.
+
+## Getting Started
+
+To clone and run this application, use the following Git command:git clone https://github.com/RosarioNoel-FS/HabitHero.git
+
+Ensure you have the latest version of Android Studio and the required SDKs installed as per the application's development environment settings.
+
+## Feedback
+
+Please feel free to fork the repository, make improvements, and submit pull requests. For bugs, suggestions, or additional information, please open an issue in the repository.
 
