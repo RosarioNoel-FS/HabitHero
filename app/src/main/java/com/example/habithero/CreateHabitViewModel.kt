@@ -14,7 +14,8 @@ data class CreateHabitUiState(
     val habitName: String = "",
     val habitEmoji: String = "",
     val selectedCategory: String = "",
-    val categories: List<String> = emptyList(),
+    val iconUrl: String = "", // Added to hold the category icon URL
+    val categories: Map<String, String> = emptyMap(), // Store name-to-URL map
     val selectedHour: Int = 21,
     val selectedMinute: Int = 0,
     val isLoading: Boolean = true,
@@ -45,8 +46,8 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val categoriesResult = firebaseHelper.fetchCategoriesSuspend()
-                val categoryNames = categoriesResult.keys.toList()
-                _uiState.update { it.copy(categories = categoryNames) }
+                val categoryMap = categoriesResult.mapValues { it.value.iconUrl }
+                _uiState.update { it.copy(categories = categoryMap) }
 
                 if (_uiState.value.isEditMode && habitId != null && userId != null) {
                     originalHabit = firebaseHelper.getHabitSuspend(userId, habitId)
@@ -56,6 +57,7 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
                                 habitName = originalHabit!!.name,
                                 habitEmoji = originalHabit!!.emoji,
                                 selectedCategory = originalHabit!!.category,
+                                iconUrl = originalHabit!!.iconUrl, // Load the icon URL
                                 selectedHour = originalHabit!!.completionHour,
                                 selectedMinute = originalHabit!!.completionMinute,
                                 isLoading = false
@@ -65,14 +67,14 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
                         _uiState.update { it.copy(error = "Habit not found", isLoading = false) }
                     }
                 } else {
-                     _uiState.update { it.copy(isLoading = false, selectedCategory = categoryNames.firstOrNull() ?: "") }
+                     _uiState.update { it.copy(isLoading = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to load data", isLoading = false) }
             }
         }
     }
-    
+
     fun onHabitNameChanged(newName: String) {
         _uiState.update { it.copy(habitName = newName) }
     }
@@ -81,8 +83,9 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         _uiState.update { it.copy(habitEmoji = newEmoji) }
     }
 
-    fun onCategoryChanged(newCategory: String) {
-        _uiState.update { it.copy(selectedCategory = newCategory) }
+    // Updated to handle both name and URL
+    fun onCategorySelected(name: String, url: String) {
+        _uiState.update { it.copy(selectedCategory = name, iconUrl = url) }
     }
 
     fun onTimeChanged(hour: Int, minute: Int) {
@@ -108,16 +111,18 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
                         name = currentState.habitName,
                         emoji = currentState.habitEmoji,
                         category = currentState.selectedCategory,
+                        iconUrl = currentState.iconUrl, // Save the icon URL
                         completionHour = currentState.selectedHour,
                         completionMinute = currentState.selectedMinute
                     )
-                    updatedHabit.id = habitId!! // Set the id before updating
+                    updatedHabit.id = habitId!!
                     firebaseHelper.updateHabitSuspend(userId, updatedHabit)
                 } else {
                      val newHabit = Habit(
                         name = currentState.habitName,
                         emoji = currentState.habitEmoji,
                         category = currentState.selectedCategory,
+                        iconUrl = currentState.iconUrl, // Save the icon URL
                         completionHour = currentState.selectedHour,
                         completionMinute = currentState.selectedMinute
                     )

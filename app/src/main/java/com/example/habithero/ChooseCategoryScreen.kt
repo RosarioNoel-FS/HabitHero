@@ -78,7 +78,7 @@ fun ChooseCategoryScreen(
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(uiState.categories) { category ->
+                    items(uiState.categoryInfos) { category ->
                         CategoryRow(category = category, onClick = { onCategoryClick(category.name) })
                     }
                 }

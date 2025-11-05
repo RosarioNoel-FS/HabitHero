@@ -1,6 +1,8 @@
 package com.example.habithero
 
+import android.app.Activity
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -63,11 +65,20 @@ val bottomNavItems = listOf(
 fun MainScreen() {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val activity = (context as? Activity)
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    // Intercept back press on Home screen to minimize the app instead of closing it
+    if (currentDestination?.route == Screen.Home.route) {
+        BackHandler {
+            activity?.moveTaskToBack(true)
+        }
+    }
 
     Scaffold(
         bottomBar = {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentDestination = navBackStackEntry?.destination
             NavigationBar {
                 bottomNavItems.forEach { screen ->
                     val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
@@ -120,13 +131,25 @@ fun MainScreen() {
                 )
             }
             composable(Screen.ChooseCategory.route) {
+                val chooseCategoryViewModel: ChooseCategoryViewModel = viewModel()
+                val categoriesMap by chooseCategoryViewModel.categories.collectAsState()
+                val cameFromCreateHabit = navController.previousBackStackEntry?.destination?.route?.startsWith("create_habit") == true
+
                 ChooseCategoryScreen(
+                    viewModel = chooseCategoryViewModel,
                     onBackClick = { navController.popBackStack() },
                     onCategoryClick = { categoryName ->
-                        if (categoryName == "Create Your Own") {
-                            navController.navigate(Screen.CreateHabit.createRoute())
+                        if (cameFromCreateHabit) {
+                            val iconUrl = categoriesMap[categoryName] ?: ""
+                            navController.previousBackStackEntry?.savedStateHandle?.set("category_name", categoryName)
+                            navController.previousBackStackEntry?.savedStateHandle?.set("category_icon_url", iconUrl)
+                            navController.popBackStack()
                         } else {
-                            navController.navigate(Screen.HabitSelection.createRoute(categoryName))
+                            if (categoryName == "Create Your Own") {
+                                navController.navigate(Screen.CreateHabit.createRoute())
+                            } else {
+                                navController.navigate(Screen.HabitSelection.createRoute(categoryName))
+                            }
                         }
                     }
                 )
@@ -153,19 +176,32 @@ fun MainScreen() {
                 route = Screen.CreateHabit.route,
                 arguments = listOf(navArgument("habitId") { nullable = true; type = NavType.StringType })
             ) { backStackEntry ->
+                val createHabitViewModel: CreateHabitViewModel = viewModel()
                 val habitId = backStackEntry.arguments?.getString("habitId")
+
+                val categoryName by backStackEntry.savedStateHandle.getLiveData<String>("category_name").observeAsState()
+                val categoryIconUrl by backStackEntry.savedStateHandle.getLiveData<String>("category_icon_url").observeAsState()
+
+                LaunchedEffect(categoryName, categoryIconUrl) {
+                    if (categoryName != null && categoryIconUrl != null) {
+                        createHabitViewModel.onCategorySelected(categoryName!!, categoryIconUrl!!)
+                        backStackEntry.savedStateHandle.remove<String>("category_name")
+                        backStackEntry.savedStateHandle.remove<String>("category_icon_url")
+                    }
+                }
+
                 CreateHabitScreen(
+                    viewModel = createHabitViewModel,
                     onHabitCreatedOrUpdated = {
                         if (habitId != null) {
-                            // Edit flow: Go back to Detail screen and trigger a refresh.
                             navController.previousBackStackEntry?.savedStateHandle?.set("habit_updated", true)
                             navController.popBackStack()
                         } else {
-                            // Create flow: Go back to Home screen.
                             navController.popBackStack(Screen.Home.route, inclusive = false)
                         }
                     },
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.popBackStack() },
+                    onCategoryClick = { navController.navigate(Screen.ChooseCategory.route) }
                 )
             }
             composable(
