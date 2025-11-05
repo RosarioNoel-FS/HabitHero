@@ -1,0 +1,146 @@
+package com.example.habithero
+
+import android.net.Uri
+import android.util.Log
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import kotlinx.coroutines.tasks.await
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.*
+
+class FirebaseHelper {
+
+    private val db = FirebaseFirestore.getInstance()
+
+    // --- Suspend Functions for Modern Architecture ---
+
+    suspend fun fetchUserHabitsSuspend(userId: String): List<Habit> {
+        return try {
+            val task = db.collection("users").document(userId).collection("habits")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .await()
+            task.mapNotNull { document -> documentToHabit(document) }
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching habits via suspend function: ", e)
+            throw e
+        }
+    }
+
+    suspend fun getHabitSuspend(userId: String, habitId: String): Habit? {
+        return try {
+            val document = db.collection("users").document(userId).collection("habits").document(habitId).get().await()
+            documentToHabit(document)
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching single habit via suspend function: ", e)
+            throw e
+        }
+    }
+
+    suspend fun fetchCategoriesSuspend(): Map<String, Category> {
+        return try {
+            val task = db.collection("Category").get().await()
+            task.documents.associate {
+                val categoryName = it.getString("name") ?: ""
+                @Suppress("UNCHECKED_CAST")
+                val habitList = it.get("habit_list") as? List<String> ?: emptyList()
+                val iconPath = it.getString("icon") ?: ""
+                categoryName to Category(categoryName, habitList, iconPath)
+            }.filterKeys { it.isNotEmpty() }
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching categories via suspend function: ", e)
+            throw e
+        }
+    }
+
+    suspend fun addHabitSuspend(userId: String, habit: Habit): DocumentReference {
+        return try {
+            db.collection("users").document(userId).collection("habits").add(habit).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error adding habit via suspend function", e)
+            throw e
+        }
+    }
+
+    suspend fun updateHabitSuspend(userId: String, habit: Habit) {
+        try {
+            db.collection("users").document(userId).collection("habits").document(habit.id).set(habit).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error updating habit via suspend function", e)
+            throw e
+        }
+    }
+
+    suspend fun deleteHabitSuspend(userId: String, habitId: String) {
+        try {
+            db.collection("users").document(userId).collection("habits").document(habitId).delete().await()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error deleting habit via suspend function", e)
+            throw e
+        }
+    }
+
+    suspend fun updateCompletedHabitSuspend(userId: String, habit: Habit) {
+        val updates = mapOf(
+            "completed" to habit.completed,
+            "streakCount" to habit.streakCount,
+            "completionCount" to habit.completionCount,
+            "completionDates" to habit.completionDates
+        )
+        try {
+            db.collection("users").document(userId).collection("habits").document(habit.id).update(updates).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error updating completed habit via suspend function", e)
+            throw e
+        }
+    }
+
+    private fun documentToHabit(document: DocumentSnapshot): Habit? {
+        if (!document.exists()) return null
+        return try {
+            Habit(
+                name = document.getString("name") ?: "",
+                category = document.getString("category") ?: "",
+                emoji = document.getString("emoji") ?: "", // Gracefully handle missing emoji
+                completionHour = (document.getLong("completionHour") ?: 0L).toInt(),
+                completionMinute = (document.getLong("completionMinute") ?: 0L).toInt(),
+                iconUrl = document.getString("iconUrl") ?: "",
+                completed = document.getBoolean("completed") ?: false,
+                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now(),
+                streakCount = (document.getLong("streakCount") ?: 0L).toInt(),
+                completionCount = (document.getLong("completionCount") ?: 0L).toInt(),
+                completionDates = parseCompletionDates(document.get("completionDates"))
+            ).apply {
+                id = document.id
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error parsing habit ${document.id}", e)
+            null
+        }
+    }
+
+    private fun parseCompletionDates(data: Any?): List<Date> {
+        if (data !is List<*>) return emptyList()
+        val dates = mutableListOf<Date>()
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+        for (item in data) {
+            when (item) {
+                is Timestamp -> dates.add(item.toDate())
+                is String -> {
+                    try {
+                        sdf.parse(item)?.let { dates.add(it) }
+                    } catch (e: ParseException) {
+                        Log.e("FirebaseHelper", "Failed to parse old date format: $item", e)
+                    }
+                }
+            }
+        }
+        return dates
+    }
+}

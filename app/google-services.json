@@ -37,6 +37,13 @@
             {
               "client_id": "68119956853-a0obubr8ge4acmrhmi9j277jh78a1tm0.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "68119956853-cvgvrqg93a8pu4da8cdmdpsu7pvlmd9g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.noelrosario.HabitHeroIOS"
+              }
             }
           ]
         }

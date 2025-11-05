@@ -1,11 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.HabitHero" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Base.Theme.HabitHero" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:statusBarColor">#04080B</item>
         <item name="colorPrimary">@color/dark_yellow</item>
-
     </style>
 
     <style name="CustomTimePicker" parent="ThemeOverlay.MaterialComponents.TimePicker">
@@ -16,7 +13,6 @@
 
     <style name="CustomSwitchStyle" parent="Widget.MaterialComponents.CompoundButton.Switch">
         <item name="colorControlActivated">@color/dark_yellow</item>
-        <!-- Add other customizations here -->
     </style>
 
     <style name="Theme.HabitHero" parent="Base.Theme.HabitHero" />
