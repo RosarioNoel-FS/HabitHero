@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Date
 
 data class DetailUiState(
     val habit: Habit? = null,
@@ -75,11 +76,21 @@ class DetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         }
         val currentHabit = _uiState.value.habit ?: return
 
-        val updatedHabit = currentHabit.habitCompleted()
+        // Create a new list of completion dates including the new one.
+        val newCompletionDates = currentHabit.completionDates + Date()
+
+        // Create the updated habit object.
+        // The streak is now calculated dynamically in the Habit data class.
+        val updatedHabit = currentHabit.copy(
+            completionDates = newCompletionDates,
+            completionCount = currentHabit.completionCount + 1
+        )
+        updatedHabit.id = currentHabit.id // Preserve the habit ID
 
         viewModelScope.launch {
             try {
-                firebaseHelper.updateCompletedHabitSuspend(userId, updatedHabit)
+                // Use the general update method to save the entire updated habit
+                firebaseHelper.updateHabitSuspend(userId, updatedHabit)
                 _uiState.update { it.copy(habit = updatedHabit) }
             } catch (e: Exception) {
                  _uiState.update { it.copy(error = "Failed to complete habit.") }

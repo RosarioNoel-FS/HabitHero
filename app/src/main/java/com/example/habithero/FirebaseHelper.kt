@@ -85,21 +85,6 @@ class FirebaseHelper {
         }
     }
 
-    suspend fun updateCompletedHabitSuspend(userId: String, habit: Habit) {
-        val updates = mapOf(
-            "completed" to habit.completed,
-            "streakCount" to habit.streakCount,
-            "completionCount" to habit.completionCount,
-            "completionDates" to habit.completionDates
-        )
-        try {
-            db.collection("users").document(userId).collection("habits").document(habit.id).update(updates).await()
-        } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Error updating completed habit via suspend function", e)
-            throw e
-        }
-    }
-
     private fun documentToHabit(document: DocumentSnapshot): Habit? {
         if (!document.exists()) return null
         return try {
@@ -107,14 +92,14 @@ class FirebaseHelper {
                 name = document.getString("name") ?: "",
                 category = document.getString("category") ?: "",
                 emoji = document.getString("emoji") ?: "", // Gracefully handle missing emoji
-                completionHour = (document.getLong("completionHour") ?: 0L).toInt(),
+                completionHour = (document.getLong("completionHour") ?: 21L).toInt(),
                 completionMinute = (document.getLong("completionMinute") ?: 0L).toInt(),
                 iconUrl = document.getString("iconUrl") ?: "",
-                completed = document.getBoolean("completed") ?: false,
-                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now(),
-                streakCount = (document.getLong("streakCount") ?: 0L).toInt(),
                 completionCount = (document.getLong("completionCount") ?: 0L).toInt(),
-                completionDates = parseCompletionDates(document.get("completionDates"))
+                completionDates = parseCompletionDates(document.get("completionDates")),
+                // Deprecated fields, read for compatibility but not used in new logic
+                completed = document.getBoolean("completed") ?: false,
+                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now()
             ).apply {
                 id = document.id
             }

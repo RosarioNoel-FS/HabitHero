@@ -2,12 +2,14 @@ package com.example.habithero
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -56,6 +60,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.example.habithero.ui.theme.HeroGold
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
+import org.threeten.bp.YearMonth
+import org.threeten.bp.ZoneId
+import org.threeten.bp.format.DateTimeFormatter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -114,9 +124,9 @@ fun DetailScreenContent(
         )
     }
 
-    /*if (showCalendar) {
+    if (showCalendar) {
         ProgressCalendarDialog(habit = habit, onDismiss = { showCalendar = false })
-    }*/
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -145,11 +155,7 @@ fun DetailScreenContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            QuoteCard()
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            /*OutlinedButton(
+            OutlinedButton(
                 onClick = { showCalendar = true },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -158,9 +164,13 @@ fun DetailScreenContent(
                 Icon(Icons.Default.CalendarToday, contentDescription = "Calendar", tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("View Completion Calendar", color = Color.White)
-            }*/
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            QuoteCard()
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
                 onClick = { showDeleteConfirmDialog = true },
@@ -173,6 +183,141 @@ fun DetailScreenContent(
                 Text("Delete Habit", color = Color.Red.copy(alpha = 0.7f))
             }
         }
+    }
+}
+
+@Composable
+fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
+    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+    val completedDates = remember(habit.completionDates) {
+        habit.completionDates.map { Instant.ofEpochMilli(it.time).atZone(ZoneId.systemDefault()).toLocalDate() }.toSet()
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Progress Calendar", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, "Close", tint = Color.Gray)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+
+                // Habit Info
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(model = habit.iconUrl, contentDescription = habit.name, modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(habit.name, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("${habit.completionCount} total completions", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+
+                // Month Navigation
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous Month", tint = Color.White)
+                    }
+                    Text(
+                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next Month", tint = Color.White)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+
+                // Days of the week
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    val days = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                    for (day in days) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Text(day, color = Color.Gray, fontSize = 12.sp)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+
+                // Calendar Grid
+                val firstDayOfMonth = currentMonth.atDay(1).dayOfWeek.value % 7
+                val daysInMonth = currentMonth.lengthOfMonth()
+
+                Column {
+                    var dayCounter = 1
+                    repeat(6) { weekIndex ->
+                        if (dayCounter > daysInMonth) return@repeat
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            for (dayIndex in 0..6) {
+                                Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                                    if ((weekIndex == 0 && dayIndex < firstDayOfMonth) || dayCounter > daysInMonth) {
+                                        // Empty cell
+                                    } else {
+                                        val date = currentMonth.atDay(dayCounter)
+                                        val isToday = date == LocalDate.now()
+                                        val isCompleted = completedDates.contains(date)
+
+                                        var boxModifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                        val textColor: Color
+
+                                        if (isToday && isCompleted) {
+                                            boxModifier = boxModifier.background(HeroGold)
+                                            textColor = Color.Black
+                                        } else if (isToday) {
+                                            boxModifier = boxModifier.border(BorderStroke(1.dp, HeroGold), RoundedCornerShape(8.dp))
+                                            textColor = HeroGold
+                                        } else if (isCompleted) {
+                                            boxModifier = boxModifier.background(Color(0xFF5EFF8A).copy(alpha = 0.3f))
+                                            textColor = Color.White
+                                        } else {
+                                            textColor = Color.White.copy(alpha = 0.7f)
+                                        }
+
+                                        Box(modifier = boxModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(dayCounter.toString(), color = textColor, fontWeight = FontWeight.Bold)
+                                        }
+                                        dayCounter++
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+
+                // Legend
+                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                    LegendItem(color = Color(0xFF5EFF8A).copy(alpha = 0.3f), text = "Completed")
+                    Spacer(Modifier.width(16.dp))
+                    LegendItem(color = HeroGold, text = "Today")
+                }
+
+            }
+        }
+    }
+}
+
+@Composable
+fun LegendItem(color: Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text, color = Color.Gray, fontSize = 12.sp)
     }
 }
 
