@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -49,11 +50,15 @@ import com.example.habithero.ui.theme.HeroGold
 
 sealed class Screen(val route: String, val label: String? = null, val icon: ImageVector? = null) {
     object Home : Screen("home", "Home", Icons.Default.Home)
+    object Challenges : Screen("challenges", "Challenges", Icons.Default.Star)
     object Rewards : Screen("rewards", "Rewards", Icons.Default.EmojiEvents)
     object Settings : Screen("settings")
     object ChooseCategory : Screen("choose_category")
     object HabitDetail : Screen("habit_detail/{habitId}") {
         fun createRoute(habitId: String) = "habit_detail/$habitId"
+    }
+    object ChallengeDetail : Screen("challenge_detail/{challengeId}") {
+        fun createRoute(challengeId: String) = "challenge_detail/$challengeId"
     }
     object CreateHabit : Screen("create_habit?habitId={habitId}") {
         fun createRoute(habitId: String? = null): String {
@@ -67,6 +72,7 @@ sealed class Screen(val route: String, val label: String? = null, val icon: Imag
 
 val bottomNavItems = listOf(
     Screen.Home,
+    Screen.Challenges,
     Screen.Rewards,
 )
 
@@ -140,6 +146,29 @@ fun MainScreen() {
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
                     onFabClick = { navController.navigate(Screen.ChooseCategory.route) },
                     onHabitClick = { habit -> navController.navigate(Screen.HabitDetail.createRoute(habit.id)) }
+                )
+            }
+            composable(Screen.Challenges.route) {
+                ChallengesScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onChallengeClick = { challengeId -> navController.navigate(Screen.ChallengeDetail.createRoute(challengeId)) }
+                )
+            }
+            composable(
+                route = Screen.ChallengeDetail.route,
+                arguments = listOf(navArgument("challengeId") { type = NavType.StringType })
+            ) { 
+                val viewModel: ChallengeDetailViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsState()
+                LaunchedEffect(uiState.challengeAccepted) {
+                    if (uiState.challengeAccepted) {
+                        navController.popBackStack(Screen.Home.route, inclusive = false)
+                    }
+                }
+                ChallengeDetailScreen(
+                    challengeId = it.arguments?.getString("challengeId")!!,
+                    onBackClick = { navController.popBackStack() },
+                    onAcceptChallenge = { viewModel.acceptChallenge() }
                 )
             }
             composable(Screen.Rewards.route) { RewardsScreen() }
