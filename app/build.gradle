@@ -42,7 +42,6 @@ android {
         buildConfig true
     }
 
-
     packaging {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
@@ -52,6 +51,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+
     // Compose BOM to align versions - THIS IS THE SINGLE SOURCE OF TRUTH
     implementation platform("androidx.compose:compose-bom:2024.02.02")
 
@@ -99,4 +99,7 @@ dependencies {
 
     implementation 'com.jakewharton.threetenabp:threetenabp:1.4.7'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
+
+    // Konfetti
+    implementation 'nl.dionsegijn:konfetti-compose:2.0.5'
 }

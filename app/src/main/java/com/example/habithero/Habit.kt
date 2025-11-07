@@ -32,6 +32,38 @@ data class Habit(
         get() = completionDates.maxOrNull()
 
     /**
+     * Determines if the habit has been completed within the current 24-hour period
+     * defined by the habit's deadline.
+     */
+    @get:Exclude
+    val isCompletedToday: Boolean
+        get() {
+            val lastCompletion = lastCompletionDate ?: return false
+
+            val now = LocalDateTime.now()
+            val today = LocalDate.now()
+
+            // Determine the deadline for the current 24-hour cycle.
+            val deadlineForToday = today.atTime(completionHour, completionMinute)
+
+            val (periodStart, periodEnd) = if (now < deadlineForToday) {
+                // We are in the period that started yesterday.
+                val deadlineForYesterday = deadlineForToday.minusDays(1)
+                deadlineForYesterday to deadlineForToday
+            } else {
+                // We are in the period that started today.
+                val deadlineForTomorrow = deadlineForToday.plusDays(1)
+                deadlineForToday to deadlineForTomorrow
+            }
+
+            val lastCompletionDateTime = Instant.ofEpochMilli(lastCompletion.time)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+
+            return lastCompletionDateTime >= periodStart && lastCompletionDateTime < periodEnd
+        }
+
+    /**
      * Calculates the current streak by iterating backwards from today.
      * This is a computed property, ensuring the streak is always up-to-date.
      */
@@ -53,19 +85,9 @@ data class Habit(
             // Define today's deadline
             val todayDeadline = currentDate.atTime(completionHour, completionMinute)
 
-            // If it's already past today's deadline and the habit hasn't been completed today, the streak is 0.
-            // But we must first check if the most recent completion was for today's period.
-            val mostRecentCompletion = if (uniqueDates.isNotEmpty()) uniqueDates.first() else null
-
-            // Determine the start date for the streak check.
-            // If the latest completion is today, we start checking from today.
-            // If the latest completion was yesterday, we also start from today to check continuity.
-            // If it was before yesterday, the streak is broken unless we are checking the day right after that completion.
-
             var expectedDate = currentDate
 
             // If the time now is BEFORE today's deadline, the current period is for YESTERDAY's date.
-            // So, we should check if yesterday was completed.
             if (now < todayDeadline) {
                 expectedDate = currentDate.minusDays(1)
             }
@@ -79,7 +101,6 @@ data class Habit(
                     // A gap was found, the streak is broken.
                     break
                 }
-                // If date > expectedDate, it means multiple completions on the same day, which is fine.
             }
 
             return streak

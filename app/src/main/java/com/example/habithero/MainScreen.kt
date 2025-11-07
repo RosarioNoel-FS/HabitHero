@@ -3,14 +3,19 @@ package com.example.habithero
 import android.app.Activity
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -23,8 +28,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -66,6 +75,7 @@ fun MainScreen() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val activity = (context as? Activity)
+    val haptics = LocalHapticFeedback.current
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -78,24 +88,45 @@ fun MainScreen() {
     }
 
     Scaffold(
+        containerColor = Color.Transparent, // Let the theme gradient show through
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = Color.Transparent, // Make navigation bar transparent
+            ) {
                 bottomNavItems.forEach { screen ->
                     val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     NavigationBarItem(
-                        icon = { Icon(screen.icon!!, contentDescription = null) },
-                        label = { Text(screen.label!!) },
                         selected = isSelected,
                         onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id)
                                 launchSingleTop = true
                             }
                         },
+                        icon = {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(32.dp)
+                                            .height(3.dp)
+                                            .background(HeroGold, shape = RoundedCornerShape(2.dp))
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.height(3.dp)) // Maintain space
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Icon(screen.icon!!, contentDescription = null)
+                            }
+                        },
+                        label = { Text(screen.label!!) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = HeroGold,
                             selectedTextColor = HeroGold,
-                            indicatorColor = MaterialTheme.colorScheme.surface
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray,
+                            indicatorColor = Color.Transparent // Remove the default pill indicator
                         )
                     )
                 }

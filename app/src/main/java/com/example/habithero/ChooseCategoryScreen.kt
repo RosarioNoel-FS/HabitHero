@@ -1,5 +1,6 @@
 package com.example.habithero
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,11 +36,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.habithero.ui.theme.HeroGold
 
 data class CategoryInfo(val name: String, val description: String, val iconUrl: String)
 
@@ -50,12 +54,16 @@ fun ChooseCategoryScreen(
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val haptics = LocalHapticFeedback.current
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBackClick) {
+                IconButton(onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onBackClick()
+                }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
             }
@@ -77,7 +85,7 @@ fun ChooseCategoryScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(uiState.categoryInfos) { category ->
                         CategoryRow(category = category, onClick = { onCategoryClick(category.name) })
                     }
@@ -89,12 +97,17 @@ fun ChooseCategoryScreen(
 
 @Composable
 fun CategoryRow(category: CategoryInfo, onClick: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -104,7 +117,7 @@ fun CategoryRow(category: CategoryInfo, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(60.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFFFD600)), // Yellow background for icon
+                    .background(HeroGold), // Use consistent HeroGold for the icon background
                 contentAlignment = Alignment.Center
             ) {
                 if (category.name == "Create Your Own") {

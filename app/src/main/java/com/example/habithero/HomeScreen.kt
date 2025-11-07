@@ -1,6 +1,14 @@
 package com.example.habithero
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -28,20 +38,48 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.habithero.ui.theme.GoldTransparent
+import com.example.habithero.ui.theme.HeroGold
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
+// Represents the time-of-day sections
+enum class TimeOfDay(val title: String, val emoji: String, val timeRange: String) {
+    Morning("Morning", "🌅", "5:00 AM – 11:59 AM"),
+    Afternoon("Afternoon", "🌤️", "12:00 PM – 5:59 PM"),
+    Night("Night", "🌙", "6:00 PM – 4:59 AM")
+}
+
+fun getHabitTimeOfDay(habit: Habit): TimeOfDay {
+    val hour = habit.completionHour
+    return when (hour) {
+        in 5..11 -> TimeOfDay.Morning
+        in 12..17 -> TimeOfDay.Afternoon
+        else -> TimeOfDay.Night // Covers 6 PM to 4:59 AM
+    }
+}
 
 @Composable
 fun HomeScreen(
@@ -53,8 +91,6 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // This effect will run every time the screen enters the RESUMED state,
-    // which includes initial composition and returning from another screen.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -62,7 +98,6 @@ fun HomeScreen(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -87,38 +122,72 @@ fun HomeScreenContent(
     onFabClick: () -> Unit,
     onHabitClick: (Habit) -> Unit
 ) {
+    val groupedHabits = remember(habits) {
+        habits.groupBy { getHabitTimeOfDay(it) }
+            .mapValues { (_, habits) ->
+                habits.sortedWith(compareBy({ it.completionHour }, { it.completionMinute }))
+            }
+    }
+    val isFirstTime = habits.isEmpty()
+    val haptics = LocalHapticFeedback.current
+
+    // Animation for the FAB
+    val fabScale = remember { Animatable(1f) }
+    LaunchedEffect(isFirstTime) {
+        if (isFirstTime) {
+            fabScale.animateTo(
+                targetValue = 1.1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 800),
+                    repeatMode = RepeatMode.Reverse
+                )
+            )
+        } else {
+            fabScale.stop()
+            fabScale.snapTo(1f)
+        }
+    }
+
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onFabClick,
+                onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onFabClick()
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
-                shape = MaterialTheme.shapes.extraLarge
+                shape = MaterialTheme.shapes.extraLarge,
+                modifier = Modifier.scale(fabScale.value)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            WelcomeHeader(name = userName, onSettingsClick = onSettingsClick)
-            Text(
-                text = "Your Active Habits (${habits.size})",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-            )
+            WelcomeHeader(name = userName, isFirstTime = isFirstTime, onSettingsClick = onSettingsClick)
+
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (habits.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Ready to build your habits today?")
-                }
+            } else if (isFirstTime) {
+                EmptyState()
             } else {
-                LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    items(habits) { habit ->
-                        HabitListItem(habit = habit, onClick = { onHabitClick(habit) })
+                Text(
+                    text = "Your Active Habits (${habits.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+                )
+                LazyColumn(modifier = Modifier.padding(horizontal = 16.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TimeOfDay.values().forEach { timeOfDay ->
+                        groupedHabits[timeOfDay]?.let { habitsInSection ->
+                            item { TimeOfDayHeader(timeOfDay) }
+                            items(habitsInSection) { habit ->
+                                HabitListItem(habit = habit, onClick = { onHabitClick(habit) })
+                            }
+                        }
                     }
                 }
             }
@@ -127,7 +196,65 @@ fun HomeScreenContent(
 }
 
 @Composable
-fun WelcomeHeader(name: String, onSettingsClick: () -> Unit) {
+fun EmptyState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.no_habit_img),
+            contentDescription = "No habits yet",
+            modifier = Modifier.size(250.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Let's build your first habit",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = Color.White
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Tap the + button to create your first habit",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun TimeOfDayHeader(timeOfDay: TimeOfDay) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = GoldTransparent),
+        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(timeOfDay.emoji, fontSize = 24.sp)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(timeOfDay.title, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
+                Text(timeOfDay.timeRange, color = Color.Gray, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun WelcomeHeader(name: String, isFirstTime: Boolean, onSettingsClick: () -> Unit) {
+    val title = if (isFirstTime) "Welcome, $name!" else "Welcome back, $name!"
+    val haptics = LocalHapticFeedback.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -136,7 +263,7 @@ fun WelcomeHeader(name: String, onSettingsClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Welcome back, $name!",
+                text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -147,7 +274,10 @@ fun WelcomeHeader(name: String, onSettingsClick: () -> Unit) {
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        IconButton(onClick = onSettingsClick) {
+        IconButton(onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onSettingsClick()
+        }) {
             Icon(
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Settings",
@@ -159,6 +289,9 @@ fun WelcomeHeader(name: String, onSettingsClick: () -> Unit) {
 
 @Composable
 fun HabitListItem(habit: Habit, onClick: () -> Unit) {
+    val isCompleted = habit.isCompletedToday
+    val haptics = LocalHapticFeedback.current
+
     val calendar = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, habit.completionHour)
         set(Calendar.MINUTE, habit.completionMinute)
@@ -166,13 +299,34 @@ fun HabitListItem(habit: Habit, onClick: () -> Unit) {
     val format = SimpleDateFormat("h:mm a", Locale.getDefault())
     val deadlineTime = format.format(calendar.time)
 
-    Card(
-        modifier = Modifier
+    val cardModifier = if (isCompleted) {
+        Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable(onClick = onClick),
+            .shadow(elevation = 8.dp, spotColor = HeroGold, shape = MaterialTheme.shapes.large)
+            .clickable { 
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .clickable { 
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
+    }
+
+    val border = if (isCompleted) {
+        BorderStroke(1.dp, HeroGold)
+    } else {
+        BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
+    }
+
+    Card(
+        modifier = cardModifier,
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = border
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -199,8 +353,20 @@ fun HabitListItem(habit: Habit, onClick: () -> Unit) {
                 modifier = Modifier.size(40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (habit.completed) {
-                    Icon(Icons.Default.Check, contentDescription = "Completed", tint = MaterialTheme.colorScheme.primary)
+                if (isCompleted) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(HeroGold.copy(alpha = 0.2f), shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Completed",
+                            tint = HeroGold,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }

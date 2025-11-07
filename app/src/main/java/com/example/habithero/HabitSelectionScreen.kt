@@ -1,5 +1,6 @@
 package com.example.habithero
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,11 +39,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.habithero.ui.theme.HeroGold
 
 @Composable
 fun HabitSelectionScreen(
@@ -52,6 +56,7 @@ fun HabitSelectionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var habitForTimePicker by remember { mutableStateOf<Habit?>(null) }
+    val haptics = LocalHapticFeedback.current
 
     LaunchedEffect(uiState.habitAdded) {
         if (uiState.habitAdded) {
@@ -72,10 +77,13 @@ fun HabitSelectionScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
-                IconButton(onClick = onBackClick) {
+                IconButton(onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onBackClick()
+                }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -90,7 +98,7 @@ fun HabitSelectionScreen(
             }
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp).fillMaxSize()) {
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -102,9 +110,12 @@ fun HabitSelectionScreen(
             }else {
                 Text("Available Habits (${uiState.habitList.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(uiState.habitList) { habit ->
-                        AvailableHabitRow(habit = habit, onAddClick = { habitForTimePicker = habit })
+                        AvailableHabitRow(habit = habit, onAddClick = { 
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            habitForTimePicker = habit 
+                        })
                     }
                 }
             }
@@ -114,10 +125,12 @@ fun HabitSelectionScreen(
 
 @Composable
 fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
@@ -144,7 +157,10 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
                 }
             }
 
-            IconButton(onClick = onAddClick) {
+            IconButton(onClick = { 
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAddClick() 
+            }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = Color.White)
             }
         }
