@@ -1,8 +1,10 @@
 package com.example.habithero
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,18 +20,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -40,9 +47,19 @@ import com.example.habithero.ui.theme.HeroGold
 
 @Composable
 fun ChallengesScreen(
+    viewModel: ChallengesViewModel,
     onBackClick: () -> Unit,
     onChallengeClick: (String) -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Scaffold(containerColor = Color.Transparent) {
         Column(
             modifier = Modifier
@@ -61,7 +78,11 @@ fun ChallengesScreen(
                     Spacer(Modifier.height(16.dp))
                 }
                 items(ChallengeData.challenges) { challenge ->
-                    ChallengeCard(challenge = challenge, onClick = { onChallengeClick(challenge.id) })
+                    ChallengeCard(
+                        challenge = challenge, 
+                        isAccepted = uiState.acceptedChallengeIds.contains(challenge.id),
+                        onClick = { onChallengeClick(challenge.id) }
+                    )
                 }
             }
         }
@@ -87,7 +108,7 @@ private fun ScreenHeader(onBackClick: () -> Unit) {
 }
 
 @Composable
-fun ChallengeCard(challenge: Challenge, onClick: () -> Unit) {
+fun ChallengeCard(challenge: Challenge, isAccepted: Boolean, onClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
     Card(
         modifier = Modifier
@@ -101,14 +122,33 @@ fun ChallengeCard(challenge: Challenge, onClick: () -> Unit) {
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = HeroGold, modifier = Modifier.size(48.dp)) // Placeholder
-                Spacer(Modifier.width(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = HeroGold, modifier = Modifier.size(48.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(challenge.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = challenge.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (isAccepted) {
+                            Spacer(Modifier.width(8.dp))
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(Color.Green.copy(alpha = 0.1f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Check, null, tint = Color.Green, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Accepted", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.Default.CalendarToday, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
                         Text("${challenge.durationDays} Days", color = Color.Gray)
                     }
                 }
@@ -117,12 +157,15 @@ fun ChallengeCard(challenge: Challenge, onClick: () -> Unit) {
             Text(challenge.description, color = Color.Gray)
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Default.CheckCircle, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
                     Text("${challenge.habits.size} Habits", color = Color.Gray)
                 }
-                Text("View Details →", color = HeroGold, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (isAccepted) "View Details →" else "Start Challenge →", 
+                    color = HeroGold, 
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

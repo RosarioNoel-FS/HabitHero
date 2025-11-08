@@ -1,7 +1,8 @@
 package com.example.habithero
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,7 @@ data class DetailUiState(
     val isDeleted: Boolean = false
 )
 
-class DetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+class DetailViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
     private val habitId: String = checkNotNull(savedStateHandle["habitId"])
     private val userId: String? = FirebaseAuth.getInstance().currentUser?.uid
@@ -27,6 +28,7 @@ class DetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     private val firebaseHelper = FirebaseHelper()
+    private val notificationScheduler = NotificationScheduler(getApplication()) 
 
     init {
         loadHabitDetails()
@@ -61,10 +63,55 @@ class DetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
 
         viewModelScope.launch {
             try {
+                _uiState.value.habit?.let { notificationScheduler.cancel(it) }
                 firebaseHelper.deleteHabitSuspend(userId, habitId)
                 _uiState.update { it.copy(isDeleted = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to delete habit.") }
+            }
+        }
+    }
+
+    fun updateReminder(isEnabled: Boolean) {
+        if (userId == null) return
+        val currentHabit = _uiState.value.habit ?: return
+
+        val updatedHabit = currentHabit.copy(reminderEnabled = isEnabled)
+        updatedHabit.id = currentHabit.id
+
+        viewModelScope.launch {
+            try {
+                firebaseHelper.updateHabitSuspend(userId, updatedHabit)
+                _uiState.update { it.copy(habit = updatedHabit) }
+                // Schedule or cancel notification
+                if (updatedHabit.reminderEnabled) {
+                    notificationScheduler.schedule(updatedHabit)
+                } else {
+                    notificationScheduler.cancel(updatedHabit)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to update reminder.") }
+            }
+        }
+    }
+    
+    fun updateReminderTime(minutes: Int) {
+        if (userId == null) return
+        val currentHabit = _uiState.value.habit ?: return
+
+        val updatedHabit = currentHabit.copy(reminderTimeMinutes = minutes)
+        updatedHabit.id = currentHabit.id
+
+        viewModelScope.launch {
+            try {
+                firebaseHelper.updateHabitSuspend(userId, updatedHabit)
+                _uiState.update { it.copy(habit = updatedHabit) }
+                // Reschedule notification with the new time
+                if (updatedHabit.reminderEnabled) {
+                    notificationScheduler.schedule(updatedHabit)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to update reminder time.") }
             }
         }
     }
@@ -76,20 +123,16 @@ class DetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         }
         val currentHabit = _uiState.value.habit ?: return
 
-        // Create a new list of completion dates including the new one.
         val newCompletionDates = currentHabit.completionDates + Date()
 
-        // Create the updated habit object.
-        // The streak is now calculated dynamically in the Habit data class.
         val updatedHabit = currentHabit.copy(
             completionDates = newCompletionDates,
             completionCount = currentHabit.completionCount + 1
         )
-        updatedHabit.id = currentHabit.id // Preserve the habit ID
+        updatedHabit.id = currentHabit.id
 
         viewModelScope.launch {
             try {
-                // Use the general update method to save the entire updated habit
                 firebaseHelper.updateHabitSuspend(userId, updatedHabit)
                 _uiState.update { it.copy(habit = updatedHabit) }
             } catch (e: Exception) {

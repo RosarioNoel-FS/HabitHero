@@ -18,6 +18,9 @@ data class Habit(
     var iconUrl: String = "",
     var completionCount: Int = 0,
     var completionDates: List<Date> = emptyList(),
+    // New fields for reminders
+    var reminderEnabled: Boolean = false, // Default to off
+    var reminderTimeMinutes: Int = 15, // Default to 15 minutes before deadline
     // Deprecated fields, kept for Firestore compatibility but not used in new logic
     var completed: Boolean = false,
     var timestamp: Timestamp? = null

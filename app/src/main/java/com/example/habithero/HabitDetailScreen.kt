@@ -3,7 +3,20 @@ package com.example.habithero
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,14 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,36 +90,24 @@ fun HabitDetailScreen(
         }
     }
 
-    when {
-        uiState.isLoading -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Transparent),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Transparent), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
-        uiState.error != null -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Transparent),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = uiState.error!!)
-            }
+    } else if (uiState.error != null) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Transparent), contentAlignment = Alignment.Center) {
+            Text(text = uiState.error!!)
         }
-        uiState.habit != null -> {
-            DetailScreenContent(
-                habit = uiState.habit!!,
-                onBack = onBackClick,
-                onEditClick = { onEditClick(uiState.habit!!.id) },
-                onDelete = { viewModel.deleteHabit() },
-                onComplete = { viewModel.completeHabit() }
-            )
-        }
+    } else if (uiState.habit != null) {
+        DetailScreenContent(
+            habit = uiState.habit!!,
+            onBack = onBackClick,
+            onEditClick = { onEditClick(uiState.habit!!.id) },
+            onDelete = { viewModel.deleteHabit() },
+            onComplete = { viewModel.completeHabit() },
+            onUpdateReminder = { viewModel.updateReminder(it) },
+            onUpdateReminderTime = { viewModel.updateReminderTime(it) }
+        )
     }
 }
 
@@ -122,64 +117,46 @@ fun DetailScreenContent(
     onBack: () -> Unit,
     onEditClick: () -> Unit,
     onDelete: () -> Unit,
-    onComplete: () -> Unit
+    onComplete: () -> Unit,
+    onUpdateReminder: (Boolean) -> Unit,
+    onUpdateReminderTime: (Int) -> Unit
 ) {
     var showCalendar by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showReminderTimeDialog by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
-
-    // Holds the list of Party configurations for KonfettiView. When this list
-    // is non‑empty, the confetti animation runs. We also define a single
-    // Party instance to reuse across recompositions. This configuration is
-    // inspired by the official Konfetti Compose samples【676325972536257†L415-L441】.
     var parties by remember { mutableStateOf<List<Party>>(emptyList()) }
 
-    // Predefine the party with sensible defaults. These settings control the
-    // emitter duration, particle rate, position, movement, and colors. Using
-    // remember ensures the same Party is reused without recreation on
-    // recomposition.
-    val party = remember {
-        Party(
-            emitter = Emitter(duration = 1500, TimeUnit.MILLISECONDS).perSecond(200),
-            position = Position.Relative(0.0, 0.0).between(Position.Relative(1.0, 0.0)),
-            angle = 90,
-            spread = 45,
-            speed = 15f,
-            maxSpeed = 30f,
-            damping = 0.9f,
-            colors = listOf(
-                0xFFFCE18A.toInt(),
-                0xFFFF726D.toInt(),
-                0xFFF4306D.toInt(),
-                0xFFB48DEF.toInt()
+    val wasCompletedPreviously = remember { mutableStateOf(habit.isCompletedToday) }
+
+    LaunchedEffect(habit.isCompletedToday) {
+        if (habit.isCompletedToday && !wasCompletedPreviously.value) {
+            parties = listOf(
+                Party(
+                    emitter = Emitter(duration = 3, TimeUnit.SECONDS).perSecond(100),
+                    position = Position.Relative(0.0, 0.0).between(Position.Relative(1.0, 0.0)),
+                    angle = 90,
+                    spread = 45,
+                    speed = 15f,
+                    maxSpeed = 30f,
+                    damping = 0.9f,
+                    colors = listOf(0xFFFFD600.toInt(), 0xFF5EFF8A.toInt(), 0xFF27A2F8.toInt(), 0xFFFF00FF.toInt())
+                )
             )
+        }
+        wasCompletedPreviously.value = habit.isCompletedToday
+    }
+
+    if (showReminderTimeDialog) {
+        ReminderTimeDialog(
+            onDismiss = { showReminderTimeDialog = false },
+            onTimeSelected = { minutes ->
+                onUpdateReminderTime(minutes)
+                showReminderTimeDialog = false
+            }
         )
     }
 
-    /**
-     * Custom completion handler that triggers confetti whenever the habit is
-     * marked as complete. We set the `parties` state first to start the
-     * animation, then call onComplete() to update the habit. This order
-     * prevents recomposition from clearing the confetti state before it
-     * appears on screen.
-     */
-    val completeWithConfetti: () -> Unit = {
-        parties = listOf(party)
-        onComplete()
-    }
-
-    // Automatically clear the confetti after it has finished playing so that
-    // subsequent taps can retrigger the animation. This effect runs every
-    // time `parties` changes. When the list is non‑empty, we wait slightly
-    // longer than the emitter duration and then reset it to empty.
-    LaunchedEffect(parties) {
-        if (parties.isNotEmpty()) {
-            kotlinx.coroutines.delay(1800)
-            parties = emptyList()
-        }
-    }
-
-    // Show the delete confirmation dialog
     if (showDeleteConfirmDialog) {
         DeleteConfirmationDialog(
             onConfirm = {
@@ -191,7 +168,6 @@ fun DetailScreenContent(
         )
     }
 
-    // Show the calendar dialog
     if (showCalendar) {
         ProgressCalendarDialog(habit = habit, onDismiss = { showCalendar = false })
     }
@@ -210,61 +186,117 @@ fun DetailScreenContent(
                 ScreenHeader(habit = habit, onBack = onBack, onEditClick = onEditClick)
                 StatsRow(habit = habit)
                 DeadlineCard(habit = habit)
-                CompletionCard(habit = habit, onComplete = completeWithConfetti)
+                ReminderCard(habit = habit, onUpdateReminder = onUpdateReminder, onTimeClicked = { showReminderTimeDialog = true })
+                CompletionCard(habit = habit, onComplete = onComplete)
                 OutlinedButton(
-                    onClick = {
+                    onClick = { 
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showCalendar = true
+                        showCalendar = true 
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                    )
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                 ) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = "Calendar",
-                        tint = Color.White
-                    )
+                    Icon(Icons.Default.CalendarToday, contentDescription = "Calendar", tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("View Completion Calendar", color = Color.White)
                 }
                 QuoteCard()
                 OutlinedButton(
-                    onClick = {
+                    onClick = { 
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showDeleteConfirmDialog = true
+                        showDeleteConfirmDialog = true 
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                    )
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                 ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete Habit",
-                        tint = Color.Red.copy(alpha = 0.7f)
-                    )
+                    Icon(Icons.Default.Delete, contentDescription = "Delete Habit", tint = Color.Red.copy(alpha = 0.7f))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Delete Habit", color = Color.Red.copy(alpha = 0.7f))
                 }
             }
         }
 
-        // Render the confetti animation on top of everything only when active.
-        if (parties.isNotEmpty()) {
-            KonfettiView(
+        KonfettiView(
+            modifier = Modifier.fillMaxSize().zIndex(1f),
+            parties = parties
+        )
+    }
+}
+
+@Composable
+fun ReminderTimeDialog(
+    onDismiss: () -> Unit,
+    onTimeSelected: (Int) -> Unit
+) {
+    val timeOptions = listOf(5, 10, 15, 30, 60)
+    val haptics = LocalHapticFeedback.current
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text("Remind Me Before Deadline", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Spacer(modifier = Modifier.height(16.dp))
+                timeOptions.forEach { minutes ->
+                    TextButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onTimeSelected(minutes)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("$minutes minutes before", color = HeroGold, fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun ReminderCard(habit: Habit, onUpdateReminder: (Boolean) -> Unit, onTimeClicked: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
+    ) {
+        Row(
+            Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .zIndex(1f),
-                parties = parties
+                    .weight(1f)
+                    .clickable(enabled = habit.reminderEnabled, onClick = onTimeClicked)
+            ) {
+                Icon(Icons.Default.Notifications, "Reminder", tint = HeroGold, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text("Reminder Notifications", fontWeight = FontWeight.Bold, color = Color.White)
+                    if (habit.reminderEnabled) {
+                        Text("${habit.reminderTimeMinutes} minutes before deadline", fontSize = 14.sp, color = HeroGold)
+                    } else {
+                        Text("Get notified when it's time for this habit", fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = habit.reminderEnabled,
+                onCheckedChange = onUpdateReminder
             )
         }
-
     }
 }
 
@@ -272,14 +304,10 @@ fun DetailScreenContent(
 fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(
-            onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onBack()
-            }
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-        }
+        IconButton(onClick = { 
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onBack() 
+        }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White) }
         Spacer(modifier = Modifier.width(16.dp))
         Box(
             modifier = Modifier
@@ -288,28 +316,17 @@ fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = habit.iconUrl,
-                contentDescription = "Habit Icon",
-                modifier = Modifier.size(28.dp)
-            )
+            AsyncImage(model = habit.iconUrl, contentDescription = "Habit Icon", modifier = Modifier.size(28.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                habit.name,
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
+            Text(habit.name, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
             Text(habit.category, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
         }
-        IconButton(
-            onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onEditClick()
-            }
-        ) {
+        IconButton(onClick = { 
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onEditClick() 
+        }) {
             Icon(Icons.Default.Edit, contentDescription = "Edit Habit", tint = Color.White)
         }
     }
@@ -317,41 +334,18 @@ fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
 
 @Composable
 fun StatsRow(habit: Habit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        DetailStatCard(
-            Modifier.weight(1f),
-            "Day Streak",
-            habit.streakCount.toString(),
-            Icons.Default.LocalFireDepartment,
-            HeroGold
-        )
-        DetailStatCard(
-            Modifier.weight(1f),
-            "Total Done",
-            habit.completionCount.toString(),
-            Icons.Default.TrackChanges,
-            Color(0xFF32CD32)
-        )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        DetailStatCard(Modifier.weight(1f), "Day Streak", habit.streakCount.toString(), Icons.Default.LocalFireDepartment, HeroGold)
+        DetailStatCard(Modifier.weight(1f), "Total Done", habit.completionCount.toString(), Icons.Default.TrackChanges, Color(0xFF32CD32))
     }
 }
 
 @Composable
-fun DetailStatCard(
-    modifier: Modifier = Modifier,
-    label: String,
-    value: String,
-    icon: ImageVector,
-    iconColor: Color
-) {
+fun DetailStatCard(modifier: Modifier = Modifier, label: String, value: String, icon: ImageVector, iconColor: Color) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(
@@ -368,21 +362,13 @@ fun DetailStatCard(
                 Icon(icon, contentDescription = label, tint = iconColor, modifier = Modifier.size(24.dp))
             }
             Column {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
+                Text(text = value, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = label, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
             }
         }
     }
 }
+
 
 @Composable
 fun DeadlineCard(habit: Habit) {
@@ -398,36 +384,22 @@ fun DeadlineCard(habit: Habit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Row(
-            Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .background(Color.Blue.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Schedule,
-                    "Deadline",
-                    tint = Color.Blue,
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(Icons.Default.Schedule, "Deadline", tint = Color.Blue, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(16.dp))
             Column {
                 Text("Daily Deadline: $deadlineTime", fontWeight = FontWeight.Bold, color = Color.White)
-                Text(
-                    "Complete before this time to maintain your streak",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+                Text("Complete before this time to maintain your streak", fontSize = 14.sp, color = Color.Gray)
             }
         }
     }
@@ -439,40 +411,16 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Box(
-            modifier = Modifier
-                .padding(32.dp)
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.padding(32.dp).fillMaxSize(), contentAlignment = Alignment.Center) {
             if (!habit.isCompletedToday) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    AsyncImage(
-                        model = habit.iconUrl,
-                        contentDescription = "Habit Icon",
-                        modifier = Modifier.size(48.dp)
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    AsyncImage(model = habit.iconUrl, "Habit Icon", modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Ready to Conquer Today?",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        "Mark this habit as complete when you're done!",
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center,
-                        fontSize = 14.sp
-                    )
+                    Text("Ready to Conquer Today?", style = MaterialTheme.typography.titleMedium, color = Color.White, textAlign = TextAlign.Center)
+                    Text("Mark this habit as complete when you're done!", color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)
                     Spacer(Modifier.height(16.dp))
                     GradientButton("Mark as Complete") {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -481,24 +429,10 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Filled.CheckCircle,
-                        "Completed",
-                        tint = Color(0xFF32CD32),
-                        modifier = Modifier.size(50.dp)
-                    )
+                    Icon(Icons.Filled.CheckCircle, "Completed", tint = Color(0xFF32CD32), modifier = Modifier.size(50.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Completed Today! 🎉",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
-                    )
-                    Text(
-                        "Amazing work! You've completed this habit for today.",
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center,
-                        fontSize = 14.sp
-                    )
+                    Text("Completed Today! 🎉", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text("Amazing work! You've completed this habit for today.", color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)
                 }
             }
         }
@@ -510,20 +444,13 @@ fun QuoteCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Text(
-            "Every small step counts towards becoming the hero you want to be! 🧑‍🚀",
-            Modifier.padding(16.dp),
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            fontSize = 12.sp
-        )
+        Text("Every small step counts towards becoming the hero you want to be! 🧑‍🚀", Modifier.padding(16.dp), color = Color.White, textAlign = TextAlign.Center, fontSize = 12.sp)
     }
 }
+
 
 // --- Dialogs and Small Components --- //
 
@@ -534,21 +461,14 @@ fun GradientButton(text: String, onClick: () -> Unit) {
         onClick = {
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             onClick()
-        },
-        shape = RoundedCornerShape(50),
+        }, 
+        shape = RoundedCornerShape(50), 
         modifier = Modifier.fillMaxWidth(0.8f),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent), 
         contentPadding = PaddingValues()
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(Color(0xFF5EFF8A), Color(0xFF27A2F8))
-                    )
-                )
-                .padding(vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().background(brush = Brush.horizontalGradient(colors = listOf(Color(0xFF5EFF8A), Color(0xFF27A2F8)))).padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(text, color = Color.White, fontWeight = FontWeight.Bold)
@@ -565,21 +485,11 @@ fun DeleteConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    "Delete Habit",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
-                )
+                Text("Delete Habit", style = MaterialTheme.typography.titleLarge, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Are you sure you want to delete this habit permanently? This action cannot be undone.",
-                    color = Color.Gray
-                )
+                Text("Are you sure you want to delete this habit permanently? This action cannot be undone.", color = Color.Gray)
                 Spacer(modifier = Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onDismiss()
@@ -592,9 +502,7 @@ fun DeleteConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             onConfirm()
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red.copy(alpha = 0.7f)
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.7f))
                     ) {
                         Text("Delete")
                     }
@@ -608,11 +516,7 @@ fun DeleteConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val completedDates = remember(habit.completionDates) {
-        habit.completionDates.map {
-            Instant.ofEpochMilli(it.time)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-        }.toSet()
+        habit.completionDates.map { Instant.ofEpochMilli(it.time).atZone(ZoneId.systemDefault()).toLocalDate() }.toSet()
     }
     val haptics = LocalHapticFeedback.current
 
@@ -627,11 +531,7 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        "Progress Calendar",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
-                    )
+                    Text("Progress Calendar", style = MaterialTheme.typography.titleLarge, color = Color.White)
                     IconButton(onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onDismiss()
@@ -641,19 +541,11 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
-                        model = habit.iconUrl,
-                        contentDescription = habit.name,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    AsyncImage(model = habit.iconUrl, contentDescription = habit.name, modifier = Modifier.size(32.dp))
                     Spacer(Modifier.width(8.dp))
                     Column {
                         Text(habit.name, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text(
-                            "${habit.completionCount} total completions",
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
+                        Text("${habit.completionCount} total completions", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -662,30 +554,22 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = {
+                    IconButton(onClick = { 
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        currentMonth = currentMonth.minusMonths(1)
+                        currentMonth = currentMonth.minusMonths(1) 
                     }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            "Previous Month",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous Month", tint = Color.White)
                     }
                     Text(
                         text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = {
+                    IconButton(onClick = { 
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        currentMonth = currentMonth.plusMonths(1)
+                        currentMonth = currentMonth.plusMonths(1) 
                     }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            "Next Month",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next Month", tint = Color.White)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -707,16 +591,8 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                         if (dayCounter > daysInMonth) return@repeat
                         Row(modifier = Modifier.fillMaxWidth()) {
                             for (dayIndex in 0..6) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .aspectRatio(1f),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (
-                                        (weekIndex == 0 && dayIndex < firstDayOfMonth) ||
-                                        dayCounter > daysInMonth
-                                    ) {
+                                Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                                    if ((weekIndex == 0 && dayIndex < firstDayOfMonth) || dayCounter > daysInMonth) {
                                         // Empty cell
                                     } else {
                                         val date = currentMonth.atDay(dayCounter)
@@ -730,29 +606,17 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                                             boxModifier = boxModifier.background(HeroGold)
                                             textColor = Color.Black
                                         } else if (isToday) {
-                                            boxModifier = boxModifier.border(
-                                                BorderStroke(1.dp, HeroGold),
-                                                RoundedCornerShape(8.dp)
-                                            )
+                                            boxModifier = boxModifier.border(BorderStroke(1.dp, HeroGold), RoundedCornerShape(8.dp))
                                             textColor = HeroGold
                                         } else if (isCompleted) {
-                                            boxModifier = boxModifier.background(
-                                                Color(0xFF32CD32).copy(alpha = 0.3f)
-                                            )
+                                            boxModifier = boxModifier.background(Color(0xFF32CD32).copy(alpha = 0.3f))
                                             textColor = Color.White
                                         } else {
                                             textColor = Color.White.copy(alpha = 0.7f)
                                         }
 
-                                        Box(
-                                            modifier = boxModifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                dayCounter.toString(),
-                                                color = textColor,
-                                                fontWeight = FontWeight.Bold
-                                            )
+                                        Box(modifier = boxModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(dayCounter.toString(), color = textColor, fontWeight = FontWeight.Bold)
                                         }
                                         dayCounter++
                                     }
@@ -762,14 +626,8 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    LegendItem(
-                        color = Color(0xFF32CD32).copy(alpha = 0.3f),
-                        text = "Completed"
-                    )
+                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                    LegendItem(color = Color(0xFF32CD32).copy(alpha = 0.3f), text = "Completed")
                     Spacer(Modifier.width(16.dp))
                     LegendItem(color = HeroGold, text = "Today")
                 }

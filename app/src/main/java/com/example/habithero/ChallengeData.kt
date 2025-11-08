@@ -22,7 +22,7 @@ object ChallengeData {
                     emoji = "🧘",
                     completionHour = 6,
                     completionMinute = 30,
-                    iconUrl = "https://example.com/meditation.png" // Placeholder
+                    iconUrl = "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"
                 ),
                 HabitTemplate(
                     name = "Morning Stretching",
@@ -30,7 +30,7 @@ object ChallengeData {
                     emoji = "🤸",
                     completionHour = 7,
                     completionMinute = 0,
-                    iconUrl = "https://example.com/stretching.png" // Placeholder
+                    iconUrl = "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"
                 ),
                 HabitTemplate(
                     name = "Drink 8 Glasses of Water",
@@ -38,7 +38,7 @@ object ChallengeData {
                     emoji = "💧",
                     completionHour = 7,
                     completionMinute = 15,
-                    iconUrl = "https://example.com/water.png" // Placeholder
+                    iconUrl = "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"
                 ),
                 HabitTemplate(
                     name = "Make Your Bed",
@@ -46,7 +46,7 @@ object ChallengeData {
                     emoji = "🛏️",
                     completionHour = 7,
                     completionMinute = 30,
-                    iconUrl = "https://example.com/bed.png" // Placeholder
+                    iconUrl = "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"
                 ),
                 HabitTemplate(
                     name = "Write 3 Gratitudes",
@@ -54,7 +54,7 @@ object ChallengeData {
                     emoji = "✍️",
                     completionHour = 8,
                     completionMinute = 0,
-                    iconUrl = "https://example.com/gratitude.png" // Placeholder
+                    iconUrl = "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"
                 )
             )
         ),
@@ -73,11 +73,11 @@ object ChallengeData {
                 "Greater sense of accomplishment and control"
             ),
             habits = listOf(
-                HabitTemplate("Plan Your Day", "Productivity", "📅", 8, 0, ""),
-                HabitTemplate("2 Hours Deep Work", "Productivity", "💻", 9, 30, ""),
-                HabitTemplate("No Social Media for 90 Mins", "Digital Wellbeing", "📵", 10, 0, ""),
-                HabitTemplate("Review Daily Progress", "Productivity", "📊", 17, 0, ""),
-                HabitTemplate("Tidy Workspace for 5 Mins", "Organization", "🧹", 17, 30, "")
+                HabitTemplate("Plan Your Day", "Productivity", "📅", 8, 0, "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"),
+                HabitTemplate("2 Hours Deep Work", "Productivity", "💻", 9, 30, "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"),
+                HabitTemplate("No Social Media for 90 Mins", "Digital Wellbeing", "📵", 10, 0, "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"),
+                HabitTemplate("Review Daily Progress", "Productivity", "📊", 17, 0, "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0"),
+                HabitTemplate("Tidy Workspace for 5 Mins", "Organization", "🧹", 17, 30, "https://firebasestorage.googleapis.com/v0/b/habit-hero-ef682.appspot.com/o/icon_images%2Fchallenge.png?alt=media&token=062c1313-7ef7-4c85-bd53-3a9ab5ba8cb0")
             )
         )
         // Add other challenges here...

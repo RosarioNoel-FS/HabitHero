@@ -149,7 +149,9 @@ fun MainScreen() {
                 )
             }
             composable(Screen.Challenges.route) {
+                val challengesViewModel: ChallengesViewModel = viewModel()
                 ChallengesScreen(
+                    viewModel = challengesViewModel,
                     onBackClick = { navController.popBackStack() },
                     onChallengeClick = { challengeId -> navController.navigate(Screen.ChallengeDetail.createRoute(challengeId)) }
                 )
@@ -162,13 +164,14 @@ fun MainScreen() {
                 val uiState by viewModel.uiState.collectAsState()
                 LaunchedEffect(uiState.challengeAccepted) {
                     if (uiState.challengeAccepted) {
-                        navController.popBackStack(Screen.Home.route, inclusive = false)
+                         navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
                     }
                 }
                 ChallengeDetailScreen(
-                    challengeId = it.arguments?.getString("challengeId")!!,
-                    onBackClick = { navController.popBackStack() },
-                    onAcceptChallenge = { viewModel.acceptChallenge() }
+                    viewModel = viewModel,
+                    onBackClick = { navController.popBackStack() }
                 )
             }
             composable(Screen.Rewards.route) { RewardsScreen() }
