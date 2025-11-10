@@ -5,11 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.Date
 
 data class DetailUiState(
@@ -21,13 +23,14 @@ data class DetailUiState(
 
 class DetailViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
+    private val db = FirebaseFirestore.getInstance()
     private val habitId: String = checkNotNull(savedStateHandle["habitId"])
     private val userId: String? = FirebaseAuth.getInstance().currentUser?.uid
 
     private val _uiState = MutableStateFlow(DetailUiState())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
-    private val firebaseHelper = FirebaseHelper()
+    private val firebaseHelper = FirebaseHelper() 
     private val notificationScheduler = NotificationScheduler(getApplication()) 
 
     init {
@@ -47,10 +50,22 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val habit = firebaseHelper.getHabitSuspend(userId, habitId)
-                _uiState.update { it.copy(habit = habit, isLoading = false) }
+                // Direct Firestore call to ensure full object deserialization
+                val habitDocument = db.collection("users").document(userId)
+                    .collection("habits").document(habitId).get().await()
+                
+                val habit = habitDocument.toObject(Habit::class.java)?.apply {
+                    id = habitDocument.id
+                }
+
+                if (habit != null) {
+                     _uiState.update { it.copy(habit = habit, isLoading = false) }
+                } else {
+                     _uiState.update { it.copy(error = "Habit not found.", isLoading = false) }
+                }
+               
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to load habit details.", isLoading = false) }
+                _uiState.update { it.copy(error = "Failed to load habit details: ${e.message}", isLoading = false) }
             }
         }
     }

@@ -13,6 +13,7 @@ data class Challenge(
 )
 
 data class HabitTemplate(
+    val id: String,
     val name: String,
     val category: String,
     val emoji: String,

@@ -22,7 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -123,14 +123,14 @@ fun ChallengeCard(challenge: Challenge, isAccepted: Boolean, onClick: () -> Unit
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = HeroGold, modifier = Modifier.size(48.dp))
+                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = HeroGold, modifier = Modifier.size(48.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = challenge.title,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f, fill = false) 
                         )
                         if (isAccepted) {
                             Spacer(Modifier.width(8.dp))

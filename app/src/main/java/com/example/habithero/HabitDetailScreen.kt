@@ -74,7 +74,6 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.delay
 
 @Composable
 fun HabitDetailScreen(
@@ -323,11 +322,13 @@ fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
             Text(habit.name, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
             Text(habit.category, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
         }
-        IconButton(onClick = { 
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            onEditClick() 
-        }) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit Habit", tint = Color.White)
+        if (habit.sourceChallengeId == null) {
+            IconButton(onClick = { 
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onEditClick() 
+            }) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Habit", tint = Color.White)
+            }
         }
     }
 }

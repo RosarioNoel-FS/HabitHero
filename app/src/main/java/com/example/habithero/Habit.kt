@@ -21,6 +21,9 @@ data class Habit(
     // New fields for reminders
     var reminderEnabled: Boolean = false, // Default to off
     var reminderTimeMinutes: Int = 15, // Default to 15 minutes before deadline
+    // New fields for deterministic habit creation from challenges
+    var sourceChallengeId: String? = null,
+    var sourceTemplateId: String? = null,
     // Deprecated fields, kept for Firestore compatibility but not used in new logic
     var completed: Boolean = false,
     var timestamp: Timestamp? = null

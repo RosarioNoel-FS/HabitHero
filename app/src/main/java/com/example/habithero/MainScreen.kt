@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -50,8 +51,8 @@ import com.example.habithero.ui.theme.HeroGold
 
 sealed class Screen(val route: String, val label: String? = null, val icon: ImageVector? = null) {
     object Home : Screen("home", "Home", Icons.Default.Home)
-    object Challenges : Screen("challenges", "Challenges", Icons.Default.Star)
-    object Rewards : Screen("rewards", "Rewards", Icons.Default.EmojiEvents)
+    object Challenges : Screen("challenges", "Challenges", Icons.Default.EmojiEvents)
+    object Rewards : Screen("rewards", "Rewards", Icons.Default.WorkspacePremium)
     object Settings : Screen("settings")
     object ChooseCategory : Screen("choose_category")
     object HabitDetail : Screen("habit_detail/{habitId}") {

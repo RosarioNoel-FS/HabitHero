@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrackChanges
@@ -101,7 +102,7 @@ private fun ScreenHeader(challenge: Challenge, onBackClick: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Star, null, tint = HeroGold, modifier = Modifier.size(48.dp)) // Placeholder
+            Icon(Icons.Default.EmojiEvents, null, tint = HeroGold, modifier = Modifier.size(48.dp)) // Placeholder
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(challenge.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)

@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +16,8 @@ data class ChallengeDetailUiState(
     val challenge: Challenge? = null,
     val error: String? = null,
     val challengeAccepted: Boolean = false,
-    val isAlreadyAccepted: Boolean = false
+    val isAlreadyAccepted: Boolean = false,
+    val missingHabitIds: List<String> = emptyList()
 )
 
 class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
@@ -49,13 +49,35 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
             }
 
             try {
-                val userDoc = db.collection("users").document(userId).get().await()
-                val acceptedChallenges = userDoc.get("acceptedChallenges") as? List<String> ?: emptyList()
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    challenge = challenge,
-                    isAlreadyAccepted = acceptedChallenges.contains(challengeId)
-                )
+                val enrollmentRef = db.collection("users").document(userId).collection("challengeEnrollments").document(challengeId)
+                val enrollment = enrollmentRef.get().await().toObject(ChallengeEnrollment::class.java)
+
+                if (enrollment != null) {
+                    // User is enrolled, check for missing habits
+                    val userHabits = db.collection("users").document(userId).collection("habits")
+                        .whereEqualTo("sourceChallengeId", challengeId)
+                        .get()
+                        .await()
+                        .toObjects(Habit::class.java)
+                    
+                    val existingTemplateIds = userHabits.map { it.sourceTemplateId }.toSet()
+                    val missingTemplates = challenge.habits.filter { !existingTemplateIds.contains(it.id) }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        challenge = challenge,
+                        isAlreadyAccepted = true,
+                        missingHabitIds = missingTemplates.map { it.id }
+                    )
+                } else {
+                    // User is not enrolled
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        challenge = challenge,
+                        isAlreadyAccepted = false
+                    )
+                }
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
@@ -70,10 +92,14 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
-                db.runBatch { batch ->
-                    val habitsCollection = db.collection("users").document(userId).collection("habits")
+                db.runTransaction { transaction ->
+                    val enrollmentRef = db.collection("users").document(userId).collection("challengeEnrollments").document(challengeId)
+                    transaction.set(enrollmentRef, ChallengeEnrollment(challengeId = challengeId))
+
                     challenge.habits.forEach { habitTemplate ->
-                        val newHabitRef = habitsCollection.document()
+                        val deterministicId = "$userId:$challengeId:${habitTemplate.id}"
+                        val habitRef = db.collection("users").document(userId).collection("habits").document(deterministicId)
+                        
                         val habit = Habit(
                             name = habitTemplate.name,
                             category = habitTemplate.category,
@@ -81,23 +107,58 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
                             completionHour = habitTemplate.completionHour,
                             completionMinute = habitTemplate.completionMinute,
                             iconUrl = habitTemplate.iconUrl,
-                            completionCount = 0,
-                            completionDates = emptyList(),
-                            reminderEnabled = false,
-                            reminderTimeMinutes = 15 
+                            sourceChallengeId = challengeId,
+                            sourceTemplateId = habitTemplate.id
                         ).apply {
-                            id = newHabitRef.id
+                            id = deterministicId
                         }
-                        batch.set(newHabitRef, habit)
+                        transaction.set(habitRef, habit) 
                     }
-                    
-                    val userDocRef = db.collection("users").document(userId)
-                    batch.update(userDocRef, "acceptedChallenges", FieldValue.arrayUnion(challenge.id))
-
+                    null 
                 }.await()
-                _uiState.value = _uiState.value.copy(isLoading = false, challengeAccepted = true, isAlreadyAccepted = true)
+
+                _uiState.value = _uiState.value.copy(isLoading = false, challengeAccepted = true, isAlreadyAccepted = true, missingHabitIds = emptyList())
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun addMissingHabitsForChallenge() {
+        viewModelScope.launch {
+             if (userId == null) return@launch
+            val challenge = _uiState.value.challenge ?: return@launch
+            val missingIds = _uiState.value.missingHabitIds
+            if (missingIds.isEmpty()) return@launch
+
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            try {
+                val habitsToCreate = challenge.habits.filter { missingIds.contains(it.id) }
+
+                db.runBatch { batch ->
+                     habitsToCreate.forEach { habitTemplate ->
+                        val deterministicId = "$userId:$challengeId:${habitTemplate.id}"
+                        val habitRef = db.collection("users").document(userId).collection("habits").document(deterministicId)
+                        val habit = Habit(
+                            name = habitTemplate.name,
+                            category = habitTemplate.category,
+                            emoji = habitTemplate.emoji,
+                            completionHour = habitTemplate.completionHour,
+                            completionMinute = habitTemplate.completionMinute,
+                            iconUrl = habitTemplate.iconUrl,
+                            sourceChallengeId = challengeId,
+                            sourceTemplateId = habitTemplate.id
+                        ).apply{
+                            id = deterministicId
+                        }
+                        batch.set(habitRef, habit)
+                    }
+                }.await()
+                _uiState.value = _uiState.value.copy(isLoading = false, missingHabitIds = emptyList())
+
+            } catch (e: Exception) {
+                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }
