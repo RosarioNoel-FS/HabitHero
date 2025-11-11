@@ -34,6 +34,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -89,24 +91,29 @@ fun HabitDetailScreen(
         }
     }
 
-    if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Transparent), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+    Scaffold(containerColor = Color.Transparent) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState.error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = uiState.error!!)
+                }
+            } else if (uiState.habit != null) {
+                DetailScreenContent(
+                    habit = uiState.habit!!,
+                    onBack = onBackClick,
+                    onEditClick = { onEditClick(uiState.habit!!.id) },
+                    onDelete = { viewModel.deleteHabit() },
+                    onDetach = { viewModel.detachHabitFromChallenge() },
+                    onComplete = { viewModel.completeHabit() },
+                    onUpdateReminder = { viewModel.updateReminder(it) },
+                    onUpdateReminderTime = { viewModel.updateReminderTime(it) }
+                )
+            }
         }
-    } else if (uiState.error != null) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Transparent), contentAlignment = Alignment.Center) {
-            Text(text = uiState.error!!)
-        }
-    } else if (uiState.habit != null) {
-        DetailScreenContent(
-            habit = uiState.habit!!,
-            onBack = onBackClick,
-            onEditClick = { onEditClick(uiState.habit!!.id) },
-            onDelete = { viewModel.deleteHabit() },
-            onComplete = { viewModel.completeHabit() },
-            onUpdateReminder = { viewModel.updateReminder(it) },
-            onUpdateReminderTime = { viewModel.updateReminderTime(it) }
-        )
     }
 }
 
@@ -116,12 +123,14 @@ fun DetailScreenContent(
     onBack: () -> Unit,
     onEditClick: () -> Unit,
     onDelete: () -> Unit,
+    onDetach: () -> Unit,
     onComplete: () -> Unit,
     onUpdateReminder: (Boolean) -> Unit,
     onUpdateReminderTime: (Int) -> Unit
 ) {
     var showCalendar by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showChallengeDeleteDialog by remember { mutableStateOf(false) }
     var showReminderTimeDialog by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
     var parties by remember { mutableStateOf<List<Party>>(emptyList()) }
@@ -160,10 +169,24 @@ fun DetailScreenContent(
         DeleteConfirmationDialog(
             onConfirm = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onDelete()
+                onDelete() // Direct deletion
                 showDeleteConfirmDialog = false
             },
             onDismiss = { showDeleteConfirmDialog = false }
+        )
+    }
+
+    if (showChallengeDeleteDialog) {
+        ChallengeHabitDeleteDialog(
+            onConfirmDetach = {
+                onDetach() // This keeps it as a personal habit
+                showChallengeDeleteDialog = false
+            },
+            onConfirmDelete = {
+                onDelete() // This permanently removes it
+                showChallengeDeleteDialog = false
+            },
+            onDismiss = { showChallengeDeleteDialog = false }
         )
     }
 
@@ -172,50 +195,51 @@ fun DetailScreenContent(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(containerColor = Color.Transparent) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ScreenHeader(habit = habit, onBack = onBack, onEditClick = onEditClick)
+            StatsRow(habit = habit)
+            DeadlineCard(habit = habit)
+            ReminderCard(habit = habit, onUpdateReminder = onUpdateReminder, onTimeClicked = { showReminderTimeDialog = true })
+            CompletionCard(habit = habit, onComplete = onComplete)
+            OutlinedButton(
+                onClick = { 
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    showCalendar = true 
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = colorScheme.surface.copy(alpha = 0.5f))
             ) {
-                ScreenHeader(habit = habit, onBack = onBack, onEditClick = onEditClick)
-                StatsRow(habit = habit)
-                DeadlineCard(habit = habit)
-                ReminderCard(habit = habit, onUpdateReminder = onUpdateReminder, onTimeClicked = { showReminderTimeDialog = true })
-                CompletionCard(habit = habit, onComplete = onComplete)
-                OutlinedButton(
-                    onClick = { 
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showCalendar = true 
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f)),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = "Calendar", tint = Color.White)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Completion Calendar", color = Color.White)
-                }
-                QuoteCard()
-                OutlinedButton(
-                    onClick = { 
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showDeleteConfirmDialog = true 
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f)),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete Habit", tint = Color.Red.copy(alpha = 0.7f))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete Habit", color = Color.Red.copy(alpha = 0.7f))
-                }
+                Icon(Icons.Default.CalendarToday, contentDescription = "Calendar", tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("View Completion Calendar", color = Color.White)
+            }
+            QuoteCard()
+            OutlinedButton(
+                onClick = { 
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (habit.sourceChallengeId != null) {
+                        showChallengeDeleteDialog = true
+                    } else {
+                        showDeleteConfirmDialog = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = colorScheme.surface.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete Habit", tint = Color.Red.copy(alpha = 0.7f))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Delete Habit", color = Color.Red.copy(alpha = 0.7f))
             }
         }
 
@@ -223,6 +247,49 @@ fun DetailScreenContent(
             modifier = Modifier.fillMaxSize().zIndex(1f),
             parties = parties
         )
+    }
+}
+
+@Composable
+fun ChallengeHabitDeleteDialog(
+    onConfirmDetach: () -> Unit, // Keep as personal
+    onConfirmDelete: () -> Unit, // Remove from challenge
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Remove Challenge Habit?", style = typography.titleLarge, color = Color.White)
+                Text(
+                    text = "This habit is part of a challenge. You can either remove it from the challenge or keep it as a personal habit.",
+                    color = Color.Gray, 
+                    textAlign = TextAlign.Center,
+                    style = typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onConfirmDetach,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = HeroGold)
+                ) {
+                    Text("Keep as Personal Habit", color = Color.Black)
+                }
+
+                OutlinedButton(
+                    onClick = onConfirmDelete,
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f))
+                ) {
+                    Text("Remove from Challenge", color = Color.Red.copy(alpha = 0.7f))
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        }
     }
 }
 
@@ -237,10 +304,10 @@ fun ReminderTimeDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("Remind Me Before Deadline", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Text("Remind Me Before Deadline", style = typography.titleLarge, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
                 timeOptions.forEach { minutes ->
                     TextButton(
@@ -264,7 +331,7 @@ fun ReminderCard(habit: Habit, onUpdateReminder: (Boolean) -> Unit, onTimeClicke
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(
@@ -312,15 +379,15 @@ fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface),
+                .background(colorScheme.surface),
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(model = habit.iconUrl, contentDescription = "Habit Icon", modifier = Modifier.size(28.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(habit.name, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
-            Text(habit.category, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(habit.name, style = typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
+            Text(habit.category, style = typography.bodyMedium, color = Color.Gray)
         }
         if (habit.sourceChallengeId == null) {
             IconButton(onClick = { 
@@ -346,7 +413,7 @@ fun DetailStatCard(modifier: Modifier = Modifier, label: String, value: String, 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(
@@ -363,8 +430,8 @@ fun DetailStatCard(modifier: Modifier = Modifier, label: String, value: String, 
                 Icon(icon, contentDescription = label, tint = iconColor, modifier = Modifier.size(24.dp))
             }
             Column {
-                Text(text = value, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                Text(text = label, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                Text(text = value, style = typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = label, style = typography.bodyMedium, color = Color.Gray)
             }
         }
     }
@@ -385,7 +452,7 @@ fun DeadlineCard(habit: Habit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -412,7 +479,7 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Box(modifier = Modifier.padding(32.dp).fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -420,7 +487,7 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     AsyncImage(model = habit.iconUrl, "Habit Icon", modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text("Ready to Conquer Today?", style = MaterialTheme.typography.titleMedium, color = Color.White, textAlign = TextAlign.Center)
+                    Text("Ready to Conquer Today?", style = typography.titleMedium, color = Color.White, textAlign = TextAlign.Center)
                     Text("Mark this habit as complete when you're done!", color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)
                     Spacer(Modifier.height(16.dp))
                     GradientButton("Mark as Complete") {
@@ -432,7 +499,7 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Filled.CheckCircle, "Completed", tint = Color(0xFF32CD32), modifier = Modifier.size(50.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text("Completed Today! 🎉", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text("Completed Today! 🎉", style = typography.titleLarge, color = Color.White)
                     Text("Amazing work! You've completed this habit for today.", color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)
                 }
             }
@@ -445,7 +512,7 @@ fun QuoteCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.3f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Text("Every small step counts towards becoming the hero you want to be! 🧑‍🚀", Modifier.padding(16.dp), color = Color.White, textAlign = TextAlign.Center, fontSize = 12.sp)
@@ -483,10 +550,10 @@ fun DeleteConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("Delete Habit", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Text("Delete Habit", style = typography.titleLarge, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Are you sure you want to delete this habit permanently? This action cannot be undone.", color = Color.Gray)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -524,7 +591,7 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
@@ -532,7 +599,7 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Progress Calendar", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text("Progress Calendar", style = typography.titleLarge, color = Color.White)
                     IconButton(onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onDismiss()

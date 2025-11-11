@@ -21,9 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +38,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -55,6 +58,7 @@ fun ChallengeDetailScreen(
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showMissingHabitsBanner by remember { mutableStateOf(true) }
 
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -71,16 +75,28 @@ fun ChallengeDetailScreen(
     }
 
     uiState.challenge?.let { challenge ->
-        Scaffold(containerColor = Color.Transparent) {
+        Scaffold(containerColor = Color.Transparent) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(it)
+                    .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ScreenHeader(challenge = challenge, onBackClick = onBackClick)
+
+                if (uiState.missingHabitIds.isNotEmpty() && showMissingHabitsBanner) {
+                    MissingHabitsBanner(
+                        missingCount = uiState.missingHabitIds.size,
+                        onAddBackClick = { 
+                            viewModel.addMissingHabitsForChallenge()
+                            showMissingHabitsBanner = false // Hide banner after clicking
+                        },
+                        onDismiss = { showMissingHabitsBanner = false }
+                    )
+                }
+
                 InfoCard("About This Challenge", challenge.about, Icons.Default.Info)
                 InfoCard("Why This Matters", challenge.whyItMatters, Icons.Default.TrackChanges)
                 PositiveEffectsCard(challenge.positiveEffects)
@@ -95,6 +111,48 @@ fun ChallengeDetailScreen(
 }
 
 @Composable
+private fun MissingHabitsBanner(
+    missingCount: Int,
+    onAddBackClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.6f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "You removed $missingCount habit${if (missingCount > 1) "s" else ""}.",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("Add it back to stay on track.", color = Color.Gray, fontSize = 14.sp)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onAddBackClick,
+                colors = ButtonDefaults.buttonColors(containerColor = HeroGold),
+                shape = RoundedCornerShape(50),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                Text("Add back", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
 private fun ScreenHeader(challenge: Challenge, onBackClick: () -> Unit) {
     Column {
         IconButton(onClick = onBackClick) {
@@ -102,10 +160,10 @@ private fun ScreenHeader(challenge: Challenge, onBackClick: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.EmojiEvents, null, tint = HeroGold, modifier = Modifier.size(48.dp)) // Placeholder
+            Icon(Icons.Default.EmojiEvents, null, tint = HeroGold, modifier = Modifier.size(48.dp))
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(challenge.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(challenge.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 Row {
                     Icon(Icons.Default.CalendarToday, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
@@ -128,7 +186,7 @@ private fun InfoCard(title: String, content: String, icon: ImageVector) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(icon, null, tint = HeroGold, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(12.dp))
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
             }
             Spacer(Modifier.height(16.dp))
             Text(content, color = Color.Gray, style = MaterialTheme.typography.bodyLarge)
@@ -145,7 +203,7 @@ private fun PositiveEffectsCard(effects: List<String>) {
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("Positive Effects You'll Experience", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Positive Effects You\'ll Experience", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(Modifier.height(16.dp))
             effects.forEach {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
@@ -167,7 +225,7 @@ private fun HabitsCard(habits: List<HabitTemplate>) {
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Habits You'll Build (${habits.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Habits You\'ll Build (${habits.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
             habits.forEach { habit ->
                 HabitInChallenge(habit)
             }

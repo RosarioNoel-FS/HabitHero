@@ -30,8 +30,7 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
     private val _uiState = MutableStateFlow(DetailUiState())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
-    private val firebaseHelper = FirebaseHelper() 
-    private val notificationScheduler = NotificationScheduler(getApplication()) 
+    private val notificationScheduler = NotificationScheduler(getApplication())
 
     init {
         loadHabitDetails()
@@ -50,7 +49,6 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // Direct Firestore call to ensure full object deserialization
                 val habitDocument = db.collection("users").document(userId)
                     .collection("habits").document(habitId).get().await()
                 
@@ -61,6 +59,7 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
                 if (habit != null) {
                      _uiState.update { it.copy(habit = habit, isLoading = false) }
                 } else {
+                     if (_uiState.value.isDeleted) return@launch
                      _uiState.update { it.copy(error = "Habit not found.", isLoading = false) }
                 }
                
@@ -71,6 +70,7 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
     }
 
     fun deleteHabit() {
+        val habitForNotification = _uiState.value.habit
         if (userId == null) {
             _uiState.update { it.copy(error = "User not logged in") }
             return
@@ -78,11 +78,39 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
 
         viewModelScope.launch {
             try {
-                _uiState.value.habit?.let { notificationScheduler.cancel(it) }
-                firebaseHelper.deleteHabitSuspend(userId, habitId)
+                // Cancel notification if we have a habit object
+                if (habitForNotification != null) {
+                    notificationScheduler.cancel(habitForNotification)
+                }
+
+                // **THE FIX**: Always use the immutable `habitId` from the SavedStateHandle.
+                // This ensures we always delete the correct document, regardless of UI state changes.
+                db.collection("users").document(userId).collection("habits").document(habitId).delete().await()
+
+                // Set isDeleted to true to trigger navigation from the UI
                 _uiState.update { it.copy(isDeleted = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to delete habit.") }
+            }
+        }
+    }
+    
+    fun detachHabitFromChallenge() {
+        if (userId == null) return
+        val currentHabit = _uiState.value.habit ?: return
+
+        val updatedHabit = currentHabit.copy(
+            sourceChallengeId = null,
+            sourceTemplateId = null
+        )
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(userId).collection("habits").document(habitId)
+                    .set(updatedHabit).await()
+                _uiState.update { it.copy(habit = updatedHabit) } 
+            } catch (e: Exception) {
+                 _uiState.update { it.copy(error = "Failed to detach habit.") }
             }
         }
     }
@@ -92,13 +120,13 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         val currentHabit = _uiState.value.habit ?: return
 
         val updatedHabit = currentHabit.copy(reminderEnabled = isEnabled)
-        updatedHabit.id = currentHabit.id
 
         viewModelScope.launch {
             try {
-                firebaseHelper.updateHabitSuspend(userId, updatedHabit)
+                db.collection("users").document(userId).collection("habits").document(habitId)
+                    .set(updatedHabit).await()
                 _uiState.update { it.copy(habit = updatedHabit) }
-                // Schedule or cancel notification
+
                 if (updatedHabit.reminderEnabled) {
                     notificationScheduler.schedule(updatedHabit)
                 } else {
@@ -115,13 +143,13 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         val currentHabit = _uiState.value.habit ?: return
 
         val updatedHabit = currentHabit.copy(reminderTimeMinutes = minutes)
-        updatedHabit.id = currentHabit.id
 
         viewModelScope.launch {
             try {
-                firebaseHelper.updateHabitSuspend(userId, updatedHabit)
+                 db.collection("users").document(userId).collection("habits").document(habitId)
+                    .set(updatedHabit).await()
                 _uiState.update { it.copy(habit = updatedHabit) }
-                // Reschedule notification with the new time
+
                 if (updatedHabit.reminderEnabled) {
                     notificationScheduler.schedule(updatedHabit)
                 }
@@ -144,11 +172,11 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
             completionDates = newCompletionDates,
             completionCount = currentHabit.completionCount + 1
         )
-        updatedHabit.id = currentHabit.id
 
         viewModelScope.launch {
             try {
-                firebaseHelper.updateHabitSuspend(userId, updatedHabit)
+                db.collection("users").document(userId).collection("habits").document(habitId)
+                    .set(updatedHabit).await()
                 _uiState.update { it.copy(habit = updatedHabit) }
             } catch (e: Exception) {
                  _uiState.update { it.copy(error = "Failed to complete habit.") }
