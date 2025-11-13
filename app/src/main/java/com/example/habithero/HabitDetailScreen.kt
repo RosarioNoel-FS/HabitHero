@@ -61,8 +61,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.habithero.ui.theme.HeroGold
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.delay
 import nl.dionsegijn.konfetti.compose.KonfettiView
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -72,10 +77,6 @@ import org.threeten.bp.LocalDate
 import org.threeten.bp.YearMonth
 import org.threeten.bp.ZoneId
 import org.threeten.bp.format.DateTimeFormatter
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.concurrent.TimeUnit
-import androidx.compose.ui.zIndex
 
 @Composable
 fun HabitDetailScreen(
@@ -93,40 +94,32 @@ fun HabitDetailScreen(
 
     Scaffold(containerColor = Color.Transparent) { padding ->
         Box(modifier = Modifier.padding(padding)) {
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = uiState.error!!)
-                }
-            } else if (uiState.habit != null) {
-                DetailScreenContent(
-                    habit = uiState.habit!!,
-                    onBack = onBackClick,
-                    onEditClick = { onEditClick(uiState.habit!!.id) },
-                    onDelete = { viewModel.deleteHabit() },
-                    onDetach = { viewModel.detachHabitFromChallenge() },
-                    onComplete = { viewModel.completeHabit() },
-                    onUpdateReminder = { viewModel.updateReminder(it) },
-                    onUpdateReminderTime = { viewModel.updateReminderTime(it) }
-                )
-            }
+            DetailScreenContent(
+                uiState = uiState,
+                onBack = onBackClick,
+                onEditClick = { habitId -> onEditClick(habitId) },
+                onDelete = { viewModel.deleteHabit() },
+                onDetach = { viewModel.detachHabitFromChallenge() },
+                onComplete = { viewModel.completeHabit() },
+                onUpdateReminder = { viewModel.updateReminder(it) },
+                onUpdateReminderTime = { viewModel.updateReminderTime(it) },
+                onConfettiShown = { viewModel.onConfettiShown() } // Pass the event handler
+            )
         }
     }
 }
 
 @Composable
 fun DetailScreenContent(
-    habit: Habit,
+    uiState: DetailUiState,
     onBack: () -> Unit,
-    onEditClick: () -> Unit,
+    onEditClick: (String) -> Unit,
     onDelete: () -> Unit,
     onDetach: () -> Unit,
     onComplete: () -> Unit,
     onUpdateReminder: (Boolean) -> Unit,
-    onUpdateReminderTime: (Int) -> Unit
+    onUpdateReminderTime: (Int) -> Unit,
+    onConfettiShown: () -> Unit
 ) {
     var showCalendar by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -134,25 +127,55 @@ fun DetailScreenContent(
     var showReminderTimeDialog by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
     var parties by remember { mutableStateOf<List<Party>>(emptyList()) }
+    val habit = uiState.habit
 
-    val wasCompletedPreviously = remember { mutableStateOf(habit.isCompletedToday) }
+    val party = remember {
+        Party(
+            emitter = Emitter(duration = 1500, TimeUnit.MILLISECONDS).perSecond(200),
+            position = Position.Relative(0.0, 0.0).between(Position.Relative(1.0, 0.0)),
+            angle = 90,
+            spread = 45,
+            speed = 15f,
+            maxSpeed = 30f,
+            damping = 0.9f,
+            colors = listOf(0xFFFCE18A.toInt(), 0xFFFF726D.toInt(), 0xFFF4306D.toInt(), 0xFFB48DEF.toInt())
+        )
+    }
 
-    LaunchedEffect(habit.isCompletedToday) {
-        if (habit.isCompletedToday && !wasCompletedPreviously.value) {
-            parties = listOf(
-                Party(
-                    emitter = Emitter(duration = 3, TimeUnit.SECONDS).perSecond(100),
-                    position = Position.Relative(0.0, 0.0).between(Position.Relative(1.0, 0.0)),
-                    angle = 90,
-                    spread = 45,
-                    speed = 15f,
-                    maxSpeed = 30f,
-                    damping = 0.9f,
-                    colors = listOf(0xFFFFD600.toInt(), 0xFF5EFF8A.toInt(), 0xFF27A2F8.toInt(), 0xFFFF00FF.toInt())
-                )
-            )
+    // This is the guaranteed working fix for the confetti animation.
+    // It uses a one-shot event from the ViewModel to trigger the animation,
+    // ensuring it works reliably every time without race conditions.
+    LaunchedEffect(uiState.confettiEventId) {
+        if (uiState.confettiEventId != null) {
+            // First, consume the event. This prevents it from firing again on screen rotation.
+            onConfettiShown()
+
+            // Then, trigger the local animation.
+            parties = listOf(party)
+            delay(1800) // Match the animation duration
+            parties = emptyList()
         }
-        wasCompletedPreviously.value = habit.isCompletedToday
+    }
+
+    if (uiState.isLoading && habit == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (uiState.error != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = uiState.error)
+        }
+        return
+    }
+
+    if (habit == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "Habit not found.")
+        }
+        return
     }
 
     if (showReminderTimeDialog) {
@@ -169,7 +192,7 @@ fun DetailScreenContent(
         DeleteConfirmationDialog(
             onConfirm = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onDelete() // Direct deletion
+                onDelete()
                 showDeleteConfirmDialog = false
             },
             onDismiss = { showDeleteConfirmDialog = false }
@@ -179,11 +202,11 @@ fun DetailScreenContent(
     if (showChallengeDeleteDialog) {
         ChallengeHabitDeleteDialog(
             onConfirmDetach = {
-                onDetach() // This keeps it as a personal habit
+                onDetach()
                 showChallengeDeleteDialog = false
             },
             onConfirmDelete = {
-                onDelete() // This permanently removes it
+                onDelete()
                 showChallengeDeleteDialog = false
             },
             onDismiss = { showChallengeDeleteDialog = false }
@@ -203,15 +226,15 @@ fun DetailScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ScreenHeader(habit = habit, onBack = onBack, onEditClick = onEditClick)
+            ScreenHeader(habit = habit, onBack = onBack, onEditClick = { onEditClick(habit.id) })
             StatsRow(habit = habit)
             DeadlineCard(habit = habit)
             ReminderCard(habit = habit, onUpdateReminder = onUpdateReminder, onTimeClicked = { showReminderTimeDialog = true })
             CompletionCard(habit = habit, onComplete = onComplete)
             OutlinedButton(
-                onClick = { 
+                onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    showCalendar = true 
+                    showCalendar = true
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -224,7 +247,7 @@ fun DetailScreenContent(
             }
             QuoteCard()
             OutlinedButton(
-                onClick = { 
+                onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (habit.sourceChallengeId != null) {
                         showChallengeDeleteDialog = true
@@ -243,17 +266,19 @@ fun DetailScreenContent(
             }
         }
 
-        KonfettiView(
-            modifier = Modifier.fillMaxSize().zIndex(1f),
-            parties = parties
-        )
+        if (parties.isNotEmpty()) {
+            KonfettiView(
+                modifier = Modifier.fillMaxSize().zIndex(1f),
+                parties = parties
+            )
+        }
     }
 }
 
 @Composable
 fun ChallengeHabitDeleteDialog(
-    onConfirmDetach: () -> Unit, // Keep as personal
-    onConfirmDelete: () -> Unit, // Remove from challenge
+    onConfirmDetach: () -> Unit,
+    onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -265,7 +290,7 @@ fun ChallengeHabitDeleteDialog(
                 Text("Remove Challenge Habit?", style = typography.titleLarge, color = Color.White)
                 Text(
                     text = "This habit is part of a challenge. You can either remove it from the challenge or keep it as a personal habit.",
-                    color = Color.Gray, 
+                    color = Color.Gray,
                     textAlign = TextAlign.Center,
                     style = typography.bodyMedium
                 )
@@ -370,9 +395,9 @@ fun ReminderCard(habit: Habit, onUpdateReminder: (Boolean) -> Unit, onTimeClicke
 fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { 
+        IconButton(onClick = {
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            onBack() 
+            onBack()
         }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White) }
         Spacer(modifier = Modifier.width(16.dp))
         Box(
@@ -390,9 +415,9 @@ fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
             Text(habit.category, style = typography.bodyMedium, color = Color.Gray)
         }
         if (habit.sourceChallengeId == null) {
-            IconButton(onClick = { 
+            IconButton(onClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onEditClick() 
+                onEditClick()
             }) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit Habit", tint = Color.White)
             }
@@ -610,7 +635,7 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(model = habit.iconUrl, contentDescription = habit.name, modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(habit.name, fontWeight = FontWeight.Bold, color = Color.White)
                         Text("${habit.completionCount} total completions", color = Color.Gray, fontSize = 14.sp)
