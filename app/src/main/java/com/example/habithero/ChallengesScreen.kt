@@ -85,7 +85,7 @@ fun ChallengesScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Large Title Header from reference image
+                // Large Title Header
                 item {
                     Column {
                         Text(
@@ -100,8 +100,8 @@ fun ChallengesScreen(
                         )
                     }
                 }
-                // List of Challenges from local ChallengeData object
-                items(ChallengeData.challenges) { challenge ->
+                // THE DEFINITIVE FIX: Get the list of challenges from the ViewModel state.
+                items(uiState.challenges) { challenge ->
                     ChallengeCard(
                         challenge = challenge,
                         isAccepted = challenge.id in uiState.acceptedChallengeIds,

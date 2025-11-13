@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// The ViewModel's state only needs to care about which challenges are accepted.
-// The list of all possible challenges comes from the local ChallengeData object.
+// The UI State now holds the list of all challenges, fetched from Firestore.
 data class ChallengesUiState(
+    val challenges: List<Challenge> = emptyList(),
     val acceptedChallengeIds: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val error: String? = null
@@ -36,12 +36,13 @@ class ChallengesViewModel : ViewModel() {
         authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
             if (user != null) {
-                // User is signed in, so we can safely fetch their private data.
-                fetchAcceptedChallenges(user.uid)
+                // User is signed in, load all challenge data from Firestore.
+                loadAllChallengesFromFirestore(user.uid)
             } else {
-                // User is signed out, clear the state and show a message.
+                // User is signed out, clear the UI.
                 _uiState.update {
                     it.copy(
+                        challenges = emptyList(),
                         acceptedChallengeIds = emptySet(),
                         isLoading = false,
                         error = "You must be logged in to view challenges."
@@ -52,31 +53,39 @@ class ChallengesViewModel : ViewModel() {
         auth.addAuthStateListener(authStateListener)
     }
 
-    private fun fetchAcceptedChallenges(userId: String) {
+    private fun loadAllChallengesFromFirestore(userId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
+
             try {
-                // This query is allowed by security rules because it only accesses the logged-in user's data.
+                // Step 1: Fetch all challenges from the top-level /challenges collection.
+                // This will now succeed because of the new security rule.
+                val challengesSnapshot = db.collection("challenges").get().await()
+                val allChallenges = challengesSnapshot.documents.mapNotNull { document ->
+                    document.toObject(Challenge::class.java)?.copy(id = document.id)
+                }
+
+                // Step 2: Fetch the user's accepted challenges to mark them in the UI.
                 val enrollmentsSnapshot = db.collection("users").document(userId)
                     .collection("challengeEnrollments").get().await()
                 val acceptedIds = enrollmentsSnapshot.documents.map { it.id }.toSet()
 
                 _uiState.update {
                     it.copy(
+                        challenges = allChallenges,
                         acceptedChallengeIds = acceptedIds,
                         isLoading = false
                     )
                 }
             } catch (e: Exception) {
-                // This will now only happen if fetching the user's private data fails.
-                _uiState.update { it.copy(error = "Failed to load your challenge status: ${e.message}", isLoading = false) }
+                // If this fails now, it's likely because the security rule was not deployed.
+                _uiState.update { it.copy(error = "Failed to load challenges. Did you update your Firestore security rules? Error: ${e.message}", isLoading = false) }
             }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        // Important: Remove the listener to prevent memory leaks.
         auth.removeAuthStateListener(authStateListener)
     }
 }
