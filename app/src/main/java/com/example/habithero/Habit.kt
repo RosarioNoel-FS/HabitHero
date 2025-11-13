@@ -78,28 +78,39 @@ data class Habit(
         get() {
             if (completionDates.isEmpty()) return 0
 
-            // Use a mutable, sorted list of unique LocalDates for easier processing
-            val uniqueDates = completionDates
-                .map { Instant.ofEpochMilli(it.time).atZone(ZoneId.systemDefault()).toLocalDate() }
-                .toSet()
-                .sortedDescending()
+            // First, map each completion timestamp to its "effective date" based on the habit's deadline.
+            val effectiveDates = completionDates.map { date ->
+                val completionDateTime = Instant.ofEpochMilli(date.time)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime()
+                
+                val deadlineForCompletionDay = completionDateTime.toLocalDate().atTime(completionHour, completionMinute)
 
-            var streak = 0
-            var currentDate = LocalDate.now()
-            val now = LocalDateTime.now()
-
-            // Define today's deadline
-            val todayDeadline = currentDate.atTime(completionHour, completionMinute)
-
-            var expectedDate = currentDate
-
-            // If the time now is BEFORE today's deadline, the current period is for YESTERDAY's date.
-            if (now < todayDeadline) {
-                expectedDate = currentDate.minusDays(1)
+                if (completionDateTime < deadlineForCompletionDay) {
+                    // This completion belongs to the previous day's cycle.
+                    completionDateTime.toLocalDate().minusDays(1)
+                } else {
+                    // This completion belongs to the current day's cycle.
+                    completionDateTime.toLocalDate()
+                }
             }
 
-            // Now, iterate through the completion dates and see how long the chain is.
-            for (date in uniqueDates) {
+            val uniqueEffectiveDates = effectiveDates.toSet().sortedDescending()
+
+            var streak = 0
+            val now = LocalDateTime.now()
+            val today = LocalDate.now()
+
+            // Determine the "current" date for the streak check.
+            // If it's before the deadline, the cycle we're in is for yesterday.
+            var expectedDate = if (now < today.atTime(completionHour, completionMinute)) {
+                today.minusDays(1)
+            } else {
+                today
+            }
+            
+            // Now, iterate through the effective completion dates and see how long the chain is.
+            for (date in uniqueEffectiveDates) {
                 if (date == expectedDate) {
                     streak++
                     expectedDate = expectedDate.minusDays(1) // Expect the day before for the next loop
