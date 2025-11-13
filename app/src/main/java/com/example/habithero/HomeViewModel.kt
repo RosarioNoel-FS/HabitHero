@@ -49,4 +49,16 @@ class HomeViewModel : ViewModel() {
             }
         }
     }
+
+    fun deleteHabit(habitId: String) {
+        val userId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                firebaseHelper.deleteHabitSuspend(userId, habitId)
+                loadContent() // Refresh the list after deletion
+            } catch (e: Exception) {
+                // Optionally handle the error, e.g., show a snackbar
+            }
+        }
+    }
 }

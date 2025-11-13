@@ -76,6 +76,15 @@ class FirebaseHelper {
         }
     }
 
+    suspend fun deleteHabit(userId: String, habitId: String) {
+        try {
+            db.collection("users").document(userId).collection("habits").document(habitId).delete().await()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error deleting habit: ", e)
+            throw e // Re-throw to be handled by ViewModel
+        }
+    }
+
     suspend fun deleteHabitSuspend(userId: String, habitId: String) {
         try {
             db.collection("users").document(userId).collection("habits").document(habitId).delete().await()
