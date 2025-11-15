@@ -115,7 +115,7 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         val updatedHabit = currentHabit.copy(
             sourceChallengeId = null,
             sourceTemplateId = null
-        )
+        ).also { it.id = currentHabit.id } // PRESERVE ID
 
         viewModelScope.launch {
             try {
@@ -135,8 +135,14 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         }
         val habitBeforeUpdate = _uiState.value.habit ?: return
 
-        // 1. Optimistic UI update
-        val optimisticallyUpdatedHabit = habitBeforeUpdate.copy(reminderEnabled = enabled, reminderTimeMinutes = minutes)
+        // 1. Optimistic UI update, with the CRITICAL ID PRESERVATION
+        val optimisticallyUpdatedHabit = habitBeforeUpdate.copy(
+            reminderEnabled = enabled, 
+            reminderTimeMinutes = minutes
+        ).also { 
+            it.id = habitBeforeUpdate.id // This is your brilliant fix.
+        }
+        
         _uiState.update { it.copy(habit = optimisticallyUpdatedHabit, error = null) }
 
         viewModelScope.launch {
@@ -158,12 +164,11 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
                     }
                 } catch (schedulingError: Exception) {
                     // This is a non-critical error. The data is saved.
-                    // Just inform the user about the scheduling issue.
                     _uiState.update { it.copy(error = "Reminder saved, but failed to set device alert.") }
                 }
 
             } catch (databaseError: Exception) {
-                // 4. Database write FAILED. This is a critical error. Revert the UI.
+                // 4. Database write FAILED. Revert the UI to the pre-update state.
                 _uiState.update { it.copy(habit = habitBeforeUpdate, error = "Failed to save reminder to cloud.") }
             }
         }
@@ -179,10 +184,13 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
 
         val newCompletionDates = currentHabit.completionDates + Date()
 
+        // PRESERVE ID on copy
         val updatedHabit = currentHabit.copy(
             completionDates = newCompletionDates,
             completionCount = currentHabit.completionCount + 1
-        )
+        ).also {
+            it.id = currentHabit.id
+        }
 
         viewModelScope.launch {
             try {
