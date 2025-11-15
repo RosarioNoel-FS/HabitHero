@@ -37,20 +37,13 @@ class NotificationScheduler(private val context: Context) {
             }
         }
 
-        // Use setExactAndAllowWhileIdle for precise alarms that work in Doze mode
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                pendingIntent
-            )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                pendingIntent
-            )
-        }
+        // Use a standard, inexact alarm. This does not require special permissions,
+        // is more battery-friendly, and will not crash on modern Android versions.
+        alarmManager.set(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
+        )
     }
 
     fun cancel(habit: Habit) {

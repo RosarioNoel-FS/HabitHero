@@ -12,9 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import org.threeten.bp.Instant
-import org.threeten.bp.LocalDate
-import org.threeten.bp.ZoneId
 import java.util.Date
 import java.util.UUID
 
@@ -43,6 +40,10 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
 
     fun refresh() {
         loadHabitDetails()
+    }
+
+    fun onErrorShown() {
+        _uiState.update { it.copy(error = null) }
     }
 
     fun onConfettiShown() {
@@ -127,46 +128,43 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         }
     }
 
-    fun updateReminder(isEnabled: Boolean) {
-        if (userId == null) return
-        val currentHabit = _uiState.value.habit ?: return
-
-        val updatedHabit = currentHabit.copy(reminderEnabled = isEnabled)
-
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(userId).collection("habits").document(habitId)
-                    .set(updatedHabit).await()
-
-                if (updatedHabit.reminderEnabled) {
-                    notificationScheduler.schedule(updatedHabit)
-                } else {
-                    notificationScheduler.cancel(updatedHabit)
-                }
-                loadHabitDetails()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to update reminder.") }
-            }
+    fun updateReminder(enabled: Boolean, minutes: Int) {
+        if (userId == null) {
+            _uiState.update { it.copy(error = "You're not logged in.") }
+            return
         }
-    }
+        val habitBeforeUpdate = _uiState.value.habit ?: return
 
-    fun updateReminderTime(minutes: Int) {
-        if (userId == null) return
-        val currentHabit = _uiState.value.habit ?: return
-
-        val updatedHabit = currentHabit.copy(reminderTimeMinutes = minutes)
+        // 1. Optimistic UI update
+        val optimisticallyUpdatedHabit = habitBeforeUpdate.copy(reminderEnabled = enabled, reminderTimeMinutes = minutes)
+        _uiState.update { it.copy(habit = optimisticallyUpdatedHabit, error = null) }
 
         viewModelScope.launch {
+            // 2. Database operation
             try {
-                db.collection("users").document(userId).collection("habits").document(habitId)
-                    .set(updatedHabit).await()
-                loadHabitDetails()
-
-                if (updatedHabit.reminderEnabled) {
-                    notificationScheduler.schedule(updatedHabit)
+                val updates = if (enabled) {
+                    mapOf("reminderEnabled" to true, "reminderTimeMinutes" to minutes)
+                } else {
+                    mapOf("reminderEnabled" to false)
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to update reminder time.") }
+                db.collection("users").document(userId).collection("habits").document(habitId).update(updates).await()
+                
+                // 3. Database write was successful. Now, handle notification.
+                try {
+                    if (optimisticallyUpdatedHabit.reminderEnabled) {
+                        notificationScheduler.schedule(optimisticallyUpdatedHabit)
+                    } else {
+                        notificationScheduler.cancel(optimisticallyUpdatedHabit)
+                    }
+                } catch (schedulingError: Exception) {
+                    // This is a non-critical error. The data is saved.
+                    // Just inform the user about the scheduling issue.
+                    _uiState.update { it.copy(error = "Reminder saved, but failed to set device alert.") }
+                }
+
+            } catch (databaseError: Exception) {
+                // 4. Database write FAILED. This is a critical error. Revert the UI.
+                _uiState.update { it.copy(habit = habitBeforeUpdate, error = "Failed to save reminder to cloud.") }
             }
         }
     }
@@ -181,8 +179,6 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
 
         val newCompletionDates = currentHabit.completionDates + Date()
 
-        // The `streakCount` is a computed property on the Habit model, so we don't need to calculate it here.
-        // We just need to update the completion dates.
         val updatedHabit = currentHabit.copy(
             completionDates = newCompletionDates,
             completionCount = currentHabit.completionCount + 1
@@ -192,7 +188,6 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
             try {
                 db.collection("users").document(userId).collection("habits").document(habitId)
                     .set(updatedHabit).await()
-                // Reload from server to ensure consistency and trigger confetti event
                 loadHabitDetails(isCompletion = true)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to complete habit.") }

@@ -14,10 +14,14 @@ data class CreateHabitUiState(
     val habitName: String = "",
     val habitEmoji: String = "",
     val selectedCategory: String = "",
-    val iconUrl: String = "", // Added to hold the category icon URL
-    val categories: Map<String, String> = emptyMap(), // Store name-to-URL map
+    val iconUrl: String = "",
+    val categories: Map<String, String> = emptyMap(),
     val selectedHour: Int = 21,
     val selectedMinute: Int = 0,
+    // Reminder Fields
+    val reminderEnabled: Boolean = false,
+    val reminderTimeMinutes: Int = 15, // Default offset
+
     val isLoading: Boolean = true,
     val isHabitCreatedOrUpdated: Boolean = false,
     val error: String? = null,
@@ -38,39 +42,49 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     init {
         val isEditMode = habitId != null
         _uiState.update { it.copy(isEditMode = isEditMode) }
-        loadInitialData()
+        // The initial load is now correctly handled by the view's lifecycle.
     }
 
-    private fun loadInitialData() {
+    fun loadHabitData() {
         viewModelScope.launch {
+            // 1. Set loading state to true at the beginning of the process.
             _uiState.update { it.copy(isLoading = true) }
+
             try {
+                // Fetch categories first, as they are needed in both modes.
                 val categoriesResult = firebaseHelper.fetchCategoriesSuspend()
                 val categoryMap = categoriesResult.mapValues { it.value.iconUrl }
-                _uiState.update { it.copy(categories = categoryMap) }
 
                 if (_uiState.value.isEditMode && habitId != null && userId != null) {
+                    // If in edit mode, fetch the habit
                     originalHabit = firebaseHelper.getHabitSuspend(userId, habitId)
                     if (originalHabit != null) {
+                        // 2. CRITICAL FIX: Update all fields from the loaded habit in a single update.
                         _uiState.update {
                             it.copy(
                                 habitName = originalHabit!!.name,
                                 habitEmoji = originalHabit!!.emoji,
                                 selectedCategory = originalHabit!!.category,
-                                iconUrl = originalHabit!!.iconUrl, // Load the icon URL
+                                iconUrl = originalHabit!!.iconUrl,
                                 selectedHour = originalHabit!!.completionHour,
                                 selectedMinute = originalHabit!!.completionMinute,
-                                isLoading = false
+                                reminderEnabled = originalHabit!!.reminderEnabled,      // This was the missing piece
+                                reminderTimeMinutes = originalHabit!!.reminderTimeMinutes, // This was the missing piece
+                                categories = categoryMap,
+                                isLoading = false // Set loading to false only after all data is loaded
                             )
                         }
                     } else {
-                        _uiState.update { it.copy(error = "Habit not found", isLoading = false) }
+                        // Habit not found, stop loading and show an error
+                        _uiState.update { it.copy(error = "Habit not found", isLoading = false, categories = categoryMap) }
                     }
                 } else {
-                     _uiState.update { it.copy(isLoading = false) }
+                    // Not in edit mode, just load categories and stop loading
+                     _uiState.update { it.copy(categories = categoryMap, isLoading = false) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to load data", isLoading = false) }
+                // Handle any exceptions during the process
+                _uiState.update { it.copy(error = "Failed to load data: ${e.message}", isLoading = false) }
             }
         }
     }
@@ -83,13 +97,16 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         _uiState.update { it.copy(habitEmoji = newEmoji) }
     }
 
-    // Updated to handle both name and URL
     fun onCategorySelected(name: String, url: String) {
         _uiState.update { it.copy(selectedCategory = name, iconUrl = url) }
     }
 
     fun onTimeChanged(hour: Int, minute: Int) {
         _uiState.update { it.copy(selectedHour = hour, selectedMinute = minute) }
+    }
+
+    fun onReminderChanged(enabled: Boolean, minutes: Int) {
+        _uiState.update { it.copy(reminderEnabled = enabled, reminderTimeMinutes = minutes) }
     }
 
     fun saveHabit() {
@@ -106,31 +123,41 @@ class CreateHabitViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
 
         viewModelScope.launch {
             try {
-                if (currentState.isEditMode) {
-                    val updatedHabit = (originalHabit ?: Habit()).copy(
+                val habitToSave = if (currentState.isEditMode) {
+                    (originalHabit ?: Habit()).copy(
                         name = currentState.habitName,
                         emoji = currentState.habitEmoji,
                         category = currentState.selectedCategory,
-                        iconUrl = currentState.iconUrl, // Save the icon URL
+                        iconUrl = currentState.iconUrl,
                         completionHour = currentState.selectedHour,
-                        completionMinute = currentState.selectedMinute
-                    )
-                    updatedHabit.id = habitId!!
-                    firebaseHelper.updateHabitSuspend(userId, updatedHabit)
+                        completionMinute = currentState.selectedMinute,
+                        reminderEnabled = currentState.reminderEnabled,
+                        reminderTimeMinutes = currentState.reminderTimeMinutes
+                    ).apply {
+                        id = habitId!!
+                    }
                 } else {
-                     val newHabit = Habit(
+                     Habit(
                         name = currentState.habitName,
                         emoji = currentState.habitEmoji,
                         category = currentState.selectedCategory,
-                        iconUrl = currentState.iconUrl, // Save the icon URL
+                        iconUrl = currentState.iconUrl,
                         completionHour = currentState.selectedHour,
-                        completionMinute = currentState.selectedMinute
+                        completionMinute = currentState.selectedMinute,
+                        reminderEnabled = currentState.reminderEnabled,
+                        reminderTimeMinutes = currentState.reminderTimeMinutes
                     )
-                    firebaseHelper.addHabitSuspend(userId, newHabit)
                 }
+
+                if (currentState.isEditMode) {
+                    firebaseHelper.updateHabitSuspend(userId, habitToSave)
+                } else {
+                    firebaseHelper.addHabitSuspend(userId, habitToSave)
+                }
+
                 _uiState.update { it.copy(isHabitCreatedOrUpdated = true) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to save habit") }
+                _uiState.update { it.copy(error = "Failed to save habit: ${e.message}") }
             }
         }
     }
