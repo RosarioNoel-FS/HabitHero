@@ -18,6 +18,7 @@ import java.util.UUID
 data class DetailUiState(
     val habit: Habit? = null,
     val isLoading: Boolean = true,
+    val isSaving: Boolean = false, // The new flag to prevent race conditions
     val error: String? = null,
     val isDeleted: Boolean = false,
     val confettiEventId: String? = null
@@ -96,6 +97,7 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         }
 
         viewModelScope.launch {
+             _uiState.update { it.copy(isSaving = true) }
             try {
                 if (habitForNotification != null) {
                     notificationScheduler.cancel(habitForNotification)
@@ -104,6 +106,8 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
                 _uiState.update { it.copy(isDeleted = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to delete habit.") }
+            } finally {
+                _uiState.update { it.copy(isSaving = false) }
             }
         }
     }
@@ -112,18 +116,21 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         if (userId == null) return
         val currentHabit = _uiState.value.habit ?: return
 
-        val updatedHabit = currentHabit.copy(
-            sourceChallengeId = null,
-            sourceTemplateId = null
-        ).also { it.id = currentHabit.id } // PRESERVE ID
-
         viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
             try {
+                 val updatedHabit = currentHabit.copy(
+                    sourceChallengeId = null,
+                    sourceTemplateId = null
+                ).also { it.id = currentHabit.id }
+
                 db.collection("users").document(userId).collection("habits").document(habitId)
                     .set(updatedHabit).await()
                 loadHabitDetails()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to detach habit.") }
+            } finally {
+                _uiState.update { it.copy(isSaving = false) }
             }
         }
     }
@@ -135,18 +142,17 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         }
         val habitBeforeUpdate = _uiState.value.habit ?: return
 
-        // 1. Optimistic UI update, with the CRITICAL ID PRESERVATION
         val optimisticallyUpdatedHabit = habitBeforeUpdate.copy(
             reminderEnabled = enabled, 
             reminderTimeMinutes = minutes
         ).also { 
-            it.id = habitBeforeUpdate.id // This is your brilliant fix.
+            it.id = habitBeforeUpdate.id
         }
         
         _uiState.update { it.copy(habit = optimisticallyUpdatedHabit, error = null) }
 
         viewModelScope.launch {
-            // 2. Database operation
+            _uiState.update { it.copy(isSaving = true) }
             try {
                 val updates = if (enabled) {
                     mapOf("reminderEnabled" to true, "reminderTimeMinutes" to minutes)
@@ -155,7 +161,6 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
                 }
                 db.collection("users").document(userId).collection("habits").document(habitId).update(updates).await()
                 
-                // 3. Database write was successful. Now, handle notification.
                 try {
                     if (optimisticallyUpdatedHabit.reminderEnabled) {
                         notificationScheduler.schedule(optimisticallyUpdatedHabit)
@@ -163,13 +168,13 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
                         notificationScheduler.cancel(optimisticallyUpdatedHabit)
                     }
                 } catch (schedulingError: Exception) {
-                    // This is a non-critical error. The data is saved.
                     _uiState.update { it.copy(error = "Reminder saved, but failed to set device alert.") }
                 }
 
             } catch (databaseError: Exception) {
-                // 4. Database write FAILED. Revert the UI to the pre-update state.
                 _uiState.update { it.copy(habit = habitBeforeUpdate, error = "Failed to save reminder to cloud.") }
+            } finally {
+                _uiState.update { it.copy(isSaving = false) }
             }
         }
     }
@@ -180,25 +185,25 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
             return
         }
         val currentHabit = _uiState.value.habit ?: return
-        if (currentHabit.isCompletedToday) return // Already completed
-
-        val newCompletionDates = currentHabit.completionDates + Date()
-
-        // PRESERVE ID on copy
-        val updatedHabit = currentHabit.copy(
-            completionDates = newCompletionDates,
-            completionCount = currentHabit.completionCount + 1
-        ).also {
-            it.id = currentHabit.id
-        }
+        if (currentHabit.isCompletedToday) return
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
             try {
+                val newCompletionDates = currentHabit.completionDates + Date()
+                val updatedHabit = currentHabit.copy(
+                    completionDates = newCompletionDates,
+                    completionCount = currentHabit.completionCount + 1
+                ).also {
+                    it.id = currentHabit.id
+                }
                 db.collection("users").document(userId).collection("habits").document(habitId)
                     .set(updatedHabit).await()
                 loadHabitDetails(isCompletion = true)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to complete habit.") }
+            } finally {
+                _uiState.update { it.copy(isSaving = false) }
             }
         }
     }

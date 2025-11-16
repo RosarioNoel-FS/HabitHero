@@ -108,8 +108,11 @@ class FirebaseHelper {
                 completionDates = parseCompletionDates(document.get("completionDates")),
                 // Deprecated fields, read for compatibility but not used in new logic
                 completed = document.getBoolean("completed") ?: false,
-                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now()
-            ).apply {
+                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now(),
+                reminderEnabled = document.getBoolean("reminderEnabled") ?: false,
+                reminderTimeMinutes = (document.getLong("reminderTimeMinutes") ?: 15L).toInt(),
+
+                ).apply {
                 id = document.id
             }
         } catch (e: Exception) {

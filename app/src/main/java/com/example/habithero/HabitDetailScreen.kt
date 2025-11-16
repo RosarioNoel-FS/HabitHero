@@ -44,8 +44,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -220,7 +222,7 @@ fun DetailScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ScreenHeader(habit = habit, onBack = onBack, onEditClick = { onEditClick(habit.id) })
+            ScreenHeader(habit = habit, isSaving = uiState.isSaving, onBack = onBack, onEditClick = { onEditClick(habit.id) })
             StatsRow(habit = habit)
             DeadlineCard(habit = habit)
             ReminderSection(
@@ -315,7 +317,7 @@ private fun ReminderSection(
             .fillMaxWidth()
             .clickable { showReminderDialog = true },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -354,7 +356,7 @@ private fun ReminderSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Alert") },
+        title = { Text("Alert", color = Color.White) },
         text = {
             Column {
                 Row(
@@ -365,10 +367,23 @@ private fun ReminderSettingsDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("On", color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                    Switch(
+                        checked = enabled, 
+                        onCheckedChange = { enabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = HeroGold,
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color.DarkGray
+                        )
+                    )
                 }
                 HorizontalDivider(color = Color.Gray)
                 if (enabled) {
+                    val radioColors = RadioButtonDefaults.colors(
+                        selectedColor = HeroGold,
+                        unselectedColor = Color.Gray
+                    )
                     presetOptions.forEach { preset ->
                         Row(
                             Modifier
@@ -385,7 +400,8 @@ private fun ReminderSettingsDialog(
                                 onClick = { 
                                     minutes = preset
                                     isCustom = false
-                                }
+                                },
+                                colors = radioColors
                             )
                             Text(formatReminderMinutes(preset), color = Color.White, modifier = Modifier.padding(start = 8.dp))
                         }
@@ -397,7 +413,7 @@ private fun ReminderSettingsDialog(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(selected = isCustom, onClick = { isCustom = true })
+                        RadioButton(selected = isCustom, onClick = { isCustom = true }, colors = radioColors)
                         Text("Custom", color = Color.White, modifier = Modifier.padding(start = 8.dp))
                     }
                     if (isCustom) {
@@ -408,11 +424,12 @@ private fun ReminderSettingsDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(enabled, minutes) }) {
-                Text("Done")
+                Text("Done", color = HeroGold)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        containerColor = MaterialTheme.colorScheme.surface
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = Color.White) } },
+        containerColor = Color(0xFF1F2937),
+        tonalElevation = 0.dp
     )
 }
 
@@ -437,6 +454,11 @@ private fun CustomReminderPicker(
 
     val numberState = rememberLazyListState(initialFirstVisibleItemIndex = numbers.indexOf(currentNumber.toString()).coerceAtLeast(0))
     val finalNumberIndex by remember { derivedStateOf { if (numberState.isScrollInProgress) -1 else numberState.firstVisibleItemIndex } }
+
+    val radioColors = RadioButtonDefaults.colors(
+        selectedColor = HeroGold,
+        unselectedColor = Color.Gray
+    )
 
     LaunchedEffect(finalNumberIndex) {
         if (finalNumberIndex != -1) {
@@ -463,14 +485,14 @@ private fun CustomReminderPicker(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.selectable(selected = currentUnit == "minutes", onClick = { currentUnit = "minutes" })
             ) {
-                RadioButton(selected = currentUnit == "minutes", onClick = { currentUnit = "minutes" })
+                RadioButton(selected = currentUnit == "minutes", onClick = { currentUnit = "minutes" }, colors = radioColors)
                 Text("minutes", color = Color.White)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.selectable(selected = currentUnit == "hours", onClick = { currentUnit = "hours" })
             ) {
-                RadioButton(selected = currentUnit == "hours", onClick = { currentUnit = "hours" })
+                RadioButton(selected = currentUnit == "hours", onClick = { currentUnit = "hours" }, colors = radioColors)
                 Text("hours", color = Color.White)
             }
         }
@@ -552,7 +574,7 @@ fun ChallengeHabitDeleteDialog(
 }
 
 @Composable
-fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
+fun ScreenHeader(habit: Habit, isSaving: Boolean, onBack: () -> Unit, onEditClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = {
@@ -578,8 +600,8 @@ fun ScreenHeader(habit: Habit, onBack: () -> Unit, onEditClick: () -> Unit) {
             IconButton(onClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 onEditClick()
-            }) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit Habit", tint = Color.White)
+            }, enabled = !isSaving) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Habit", tint = if (!isSaving) Color.White else Color.Gray)
             }
         }
     }
@@ -644,10 +666,10 @@ fun DeadlineCard(habit: Habit) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.Blue.copy(alpha = 0.15f), CircleShape),
+                    .background(HeroGold.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Schedule, "Deadline", tint = Color.Blue, modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.Schedule, "Deadline", tint = HeroGold, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(16.dp))
             Column {
