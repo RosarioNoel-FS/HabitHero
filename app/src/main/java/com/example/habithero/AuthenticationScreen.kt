@@ -3,8 +3,10 @@ package com.example.habithero
 import android.app.Activity
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.habithero.ui.theme.HeroGold
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,6 +55,8 @@ fun AuthenticationScreen(onAuthenticationSuccess: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val credentialManager = remember { CredentialManager.create(context) }
+    var startFlyAwayAnimation by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
 
     fun launchGoogleSignIn() {
         scope.launch {
@@ -65,7 +71,7 @@ fun AuthenticationScreen(onAuthenticationSuccess: () -> Unit) {
                     .build()
 
                 val result = credentialManager.getCredential(context as Activity, request)
-                
+
                 val credential = result.credential
                 if (credential is GoogleIdTokenCredential) {
                     val idToken = credential.idToken
@@ -95,6 +101,8 @@ fun AuthenticationScreen(onAuthenticationSuccess: () -> Unit) {
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) {
             SoundHelper.playSound(context, SoundHelper.SoundType.COMPLETION)
+            startFlyAwayAnimation = true
+            delay(1500) // Wait for animation to finish
             onAuthenticationSuccess()
         }
     }
@@ -106,6 +114,26 @@ fun AuthenticationScreen(onAuthenticationSuccess: () -> Unit) {
             viewModel.clearError()
         }
     }
+
+    val screenHeightPx = with(density) { LocalContext.current.resources.displayMetrics.heightPixels.toFloat() }
+
+    val flyAwayY by animateFloatAsState(
+        targetValue = if (startFlyAwayAnimation) -screenHeightPx else 0f,
+        animationSpec = tween(durationMillis = 1500, easing = FastOutLinearInEasing),
+        label = "flyAwayY"
+    )
+
+    val flyAwayScale by animateFloatAsState(
+        targetValue = if (startFlyAwayAnimation) 0f else 1f,
+        animationSpec = tween(durationMillis = 1500, easing = FastOutLinearInEasing),
+        label = "flyAwayScale"
+    )
+
+    val formAlpha by animateFloatAsState(
+        targetValue = if (startFlyAwayAnimation) 0f else 1f,
+        animationSpec = tween(durationMillis = 500),
+        label = "formAlpha"
+    )
 
     Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
@@ -131,12 +159,15 @@ fun AuthenticationScreen(onAuthenticationSuccess: () -> Unit) {
                 .padding(top = 50.dp)
                 .size(200.dp)
                 .graphicsLayer {
-                    translationY = bobbingAnimation
+                    translationY = if (startFlyAwayAnimation) flyAwayY else bobbingAnimation
+                    scaleX = if (startFlyAwayAnimation) flyAwayScale else 1f
+                    scaleY = if (startFlyAwayAnimation) flyAwayScale else 1f
                 }
         )
 
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp)
+                .graphicsLayer { alpha = formAlpha },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
