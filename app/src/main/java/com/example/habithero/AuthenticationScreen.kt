@@ -3,6 +3,11 @@ package com.example.habithero
 import android.app.Activity
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,10 +18,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -26,6 +39,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.habithero.ui.theme.HeroGold
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
@@ -96,13 +110,41 @@ fun AuthenticationScreen(onAuthenticationSuccess: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
-        Image(painter = painterResource(id = R.drawable.sign_in_img2), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.3f)
+        Image(painter = painterResource(id = R.drawable.sign_in_img), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.3f)
+
+        val infiniteTransition = rememberInfiniteTransition(label = "balloon_boy_animation")
+        val bobbingAnimation by infiniteTransition.animateFloat(
+            initialValue = -15f,
+            targetValue = 15f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3000, easing = androidx.compose.animation.core.LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "bobbing"
+        )
+
+        Image(
+            painter = painterResource(id = R.drawable.balloon_boy),
+            contentDescription = null, // Decorative image
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 50.dp)
+                .size(200.dp)
+                .graphicsLayer {
+                    translationY = bobbingAnimation
+                }
+        )
+
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Habit Hero", style = MaterialTheme.typography.headlineLarge, color = Color.White)
+            Image(
+                painter = painterResource(id = R.drawable.text_logo),
+                contentDescription = "Habit Hero Logo",
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (uiState.authenticationMode == AuthenticationMode.SIGN_IN) "Sign in to continue your journey" else "Join the league of heroes",

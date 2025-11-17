@@ -652,7 +652,7 @@ fun DeadlineCard(habit: Habit) {
             set(java.util.Calendar.HOUR_OF_DAY, habit.completionHour)
             set(java.util.Calendar.MINUTE, habit.completionMinute)
         }
-        val format = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val format = SimpleDateFormat("h:mm a", Locale.getDefault())
         format.format(calendar.time)
     }
 
