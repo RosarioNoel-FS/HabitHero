@@ -26,6 +26,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -91,8 +93,8 @@ fun HabitSelectionScreen(
                     AsyncImage(model = uiState.category!!.iconUrl, contentDescription = "Category Icon", modifier = Modifier.size(32.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text(uiState.category!!.name, style = MaterialTheme.typography.titleLarge, color = Color.White)
-                        Text("Choose a habit to start building", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                        Text(uiState.category!!.name, style = typography.titleLarge, color = Color.White)
+                        Text("Choose a habit to start building", style = typography.bodyMedium, color = Color.Gray)
                     }
                 }
             }
@@ -108,7 +110,7 @@ fun HabitSelectionScreen(
                     Text(text = uiState.error!!)
                 }
             }else {
-                Text("Available Habits (${uiState.habitList.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Available Habits (${uiState.habitList.size})", style = typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(uiState.habitList) { habit ->
@@ -129,7 +131,7 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
         Row(
@@ -140,7 +142,7 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(HeroGold),
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(model = habit.iconUrl, contentDescription = "Habit Icon", modifier = Modifier.size(28.dp))

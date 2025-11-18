@@ -1,6 +1,7 @@
 package com.example.habithero
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,9 +38,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -100,7 +104,6 @@ fun ChallengesScreen(
                         )
                     }
                 }
-                // THE DEFINITIVE FIX: Get the list of challenges from the ViewModel state.
                 items(uiState.challenges) { challenge ->
                     ChallengeCard(
                         challenge = challenge,
@@ -120,6 +123,13 @@ fun ChallengeCard(
     onClick: () -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
+
+    val backgroundResId = when (challenge.id) {
+        "morning_warrior" -> R.drawable.morning_warrior_card
+        "productivity_master" -> R.drawable.productivity_master
+        else -> null // No custom background
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -131,75 +141,136 @@ fun ChallengeCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            // Top Row: Icon, Title/Days, Accepted Badge
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Icon(
-                    Icons.Default.EmojiEvents,
-                    contentDescription = null,
-                    tint = HeroGold,
-                    modifier = Modifier.size(40.dp)
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = challenge.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        if (isAccepted) {
-                            Spacer(Modifier.width(8.dp))
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(Color.Green.copy(alpha = 0.1f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    null,
-                                    tint = Color.Green,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    "Accepted",
-                                    color = Color.Green,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            null,
-                            tint = Color.Gray,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text("${challenge.durationDays} Days", color = Color.Gray)
+        if (backgroundResId != null) {
+            ThemedChallengeCardContent(challenge, isAccepted, backgroundResId)
+        } else {
+            DefaultChallengeCardContent(challenge, isAccepted)
+        }
+    }
+}
+
+@Composable
+private fun DefaultChallengeCardContent(challenge: Challenge, isAccepted: Boolean) {
+    Column(modifier = Modifier.padding(24.dp)) {
+        // Top Row: Icon, Title/Days, Accepted Badge
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                Icons.Default.EmojiEvents,
+                contentDescription = null,
+                tint = HeroGold,
+                modifier = Modifier.size(40.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = challenge.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isAccepted) {
+                        Spacer(Modifier.width(8.dp))
+                        AcceptedBadge()
                     }
                 }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CalendarToday,
+                        null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text("${challenge.durationDays} Days", color = Color.Gray)
+                }
             }
-            Spacer(Modifier.height(16.dp))
-            // Description
-            Text(challenge.description, color = Color.Gray)
-            Spacer(Modifier.height(16.dp))
-            // Bottom Row: Habit Count, View Details
+        }
+        Spacer(Modifier.height(16.dp))
+        // Description
+        Text(challenge.description, color = Color.Gray)
+        Spacer(Modifier.height(16.dp))
+        // Bottom Row: Habit Count, View Details
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text("${challenge.habits.size} Habits", color = Color.Gray)
+            }
+            Text(
+                text = if (isAccepted) "View Details →" else "Start Challenge →",
+                color = HeroGold,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemedChallengeCardContent(challenge: Challenge, isAccepted: Boolean, backgroundResId: Int) {
+    Box(modifier = Modifier.height(200.dp)) {
+        // Background Image
+        Image(
+            painter = painterResource(id = backgroundResId),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        // Scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.7f), // Darker at the top
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.8f)  // Darker at the bottom
+                        )
+                    )
+                )
+        )
+
+        // Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Title and Description (Top)
+            Text(
+                text = challenge.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White // Themed text color
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(challenge.description, color = Color.White.copy(alpha = 0.8f)) // Themed text color
+            
+            // Spacer to push the bottom content down
+            Spacer(Modifier.weight(1f))
+
+            // Bottom Row (Stats and Link)
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Habit Count
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -207,11 +278,35 @@ fun ChallengeCard(
                     Icon(
                         Icons.Default.CheckCircle,
                         null,
-                        tint = Color.Gray,
+                        tint = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.size(16.dp)
                     )
-                    Text("${challenge.habits.size} Habits", color = Color.Gray)
+                    Text(
+                        text = "${challenge.habits.size} Habits",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp
+                    )
                 }
+                Spacer(Modifier.width(16.dp))
+                // Duration
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CalendarToday,
+                        null,
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${challenge.durationDays} Days",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp
+                    )
+                }
+                // This spacer pushes the text to the end
+                Spacer(Modifier.weight(1f))
                 Text(
                     text = if (isAccepted) "View Details →" else "Start Challenge →",
                     color = HeroGold,
@@ -219,5 +314,37 @@ fun ChallengeCard(
                 )
             }
         }
+
+        // Accepted Badge at the top right
+        if (isAccepted) {
+            Box(modifier = Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.TopEnd) {
+                AcceptedBadge()
+            }
+        }
+    }
+}
+
+@Composable
+private fun AcceptedBadge() {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.Green.copy(alpha = 0.1f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.Check,
+            null,
+            tint = Color.Green,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            "Accepted",
+            color = Color.Green,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
