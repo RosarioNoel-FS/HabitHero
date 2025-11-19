@@ -5,14 +5,30 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.content.ContextCompat
 import java.util.Calendar
 
 class NotificationScheduler(private val context: Context) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+    fun canScheduleExactAlarms(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true // Before Android S, this permission was not needed
+        }
+    }
+
     fun schedule(habit: Habit) {
         if (!habit.reminderEnabled) return
+
+        // This check is now the primary safeguard
+        if (!canScheduleExactAlarms()) {
+            // We should not proceed if we cannot schedule exact alarms.
+            // The ViewModel should handle the user-facing error.
+            throw SecurityException("Missing permission to schedule exact alarms.")
+        }
 
         val (hour, minute) = calculateReminderTime(habit)
 
@@ -37,9 +53,7 @@ class NotificationScheduler(private val context: Context) {
             }
         }
 
-        // Use a standard, inexact alarm. This does not require special permissions,
-        // is more battery-friendly, and will not crash on modern Android versions.
-        alarmManager.set(
+        alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             calendar.timeInMillis,
             pendingIntent

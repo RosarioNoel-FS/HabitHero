@@ -45,6 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.example.habithero.ui.settings.SettingsScreen
 import com.example.habithero.ui.settings.SettingsViewModel
 import com.example.habithero.ui.theme.HeroGold
@@ -220,7 +221,8 @@ fun MainScreen() {
             }
             composable(
                 route = Screen.HabitDetail.route,
-                arguments = listOf(navArgument("habitId") { type = NavType.StringType })
+                arguments = listOf(navArgument("habitId") { type = NavType.StringType }),
+                deepLinks = listOf(navDeepLink { uriPattern = "habithero://habit/{habitId}" })
             ) { backStackEntry ->
                 val detailViewModel: DetailViewModel = viewModel()
                 val habitUpdated by backStackEntry.savedStateHandle.getLiveData<Boolean>("habit_updated").observeAsState()

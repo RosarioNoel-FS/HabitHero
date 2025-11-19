@@ -2,9 +2,11 @@ package com.example.habithero
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.google.firebase.auth.FirebaseAuth
@@ -24,7 +26,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
             try {
                 // Show notification
                 showNotification(context, habitId, habitName)
-                
+
                 // Fetch the latest habit data to reschedule for the next day
                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
@@ -54,12 +56,28 @@ class HabitReminderReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
+        // Create an Intent to launch MainActivity with a deep link
+        val deepLinkIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("habithero://habit/$habitId"),
+            context,
+            MainActivity::class.java
+        )
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            habitId.hashCode(), // Unique request code
+            deepLinkIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.default_icon) // Replace with a real icon
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // A better icon
             .setContentTitle("Habit Reminder")
             .setContentText("Don't forget to complete: $habitName")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
+            .setContentIntent(pendingIntent) // Set the intent
+            .setAutoCancel(true) // Notification dismisses on tap
             .build()
 
         notificationManager.notify(habitId.hashCode(), notification)

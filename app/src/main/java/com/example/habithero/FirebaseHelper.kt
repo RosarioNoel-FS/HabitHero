@@ -97,24 +97,26 @@ class FirebaseHelper {
     private fun documentToHabit(document: DocumentSnapshot): Habit? {
         if (!document.exists()) return null
         return try {
-            Habit(
+            val completionDates = parseCompletionDates(document.get("completionDates"))
+            val habit = Habit(
                 name = document.getString("name") ?: "",
                 category = document.getString("category") ?: "",
-                emoji = document.getString("emoji") ?: "", // Gracefully handle missing emoji
+                emoji = document.getString("emoji") ?: "",
                 completionHour = (document.getLong("completionHour") ?: 21L).toInt(),
                 completionMinute = (document.getLong("completionMinute") ?: 0L).toInt(),
                 iconUrl = document.getString("iconUrl") ?: "",
-                completionCount = (document.getLong("completionCount") ?: 0L).toInt(),
-                completionDates = parseCompletionDates(document.get("completionDates")),
-                // Deprecated fields, read for compatibility but not used in new logic
-                completed = document.getBoolean("completed") ?: false,
-                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now(),
+                completionCount = completionDates.size, // This is the fix
+                completionDates = completionDates,
                 reminderEnabled = document.getBoolean("reminderEnabled") ?: false,
                 reminderTimeMinutes = (document.getLong("reminderTimeMinutes") ?: 15L).toInt(),
-
-                ).apply {
-                id = document.id
-            }
+                sourceChallengeId = document.getString("sourceChallengeId"),
+                sourceTemplateId = document.getString("sourceTemplateId"),
+                // Deprecated fields, kept for Firestore compatibility
+                completed = document.getBoolean("completed") ?: false,
+                timestamp = document.getTimestamp("timestamp") ?: Timestamp.now()
+            )
+            habit.id = document.id
+            habit
         } catch (e: Exception) {
             Log.e("FirebaseHelper", "Error parsing habit ${document.id}", e)
             null

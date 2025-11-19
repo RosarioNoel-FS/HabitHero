@@ -1,6 +1,14 @@
 package com.example.habithero
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -55,6 +63,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -75,6 +84,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -82,6 +92,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.example.habithero.ui.theme.HeroGold
 import java.text.SimpleDateFormat
@@ -105,6 +118,20 @@ fun HabitDetailScreen(
     onEditClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // This will retry scheduling the alarm after permission is granted
+                viewModel.scheduleReminderOnResume()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
@@ -123,7 +150,8 @@ fun HabitDetailScreen(
                 onComplete = { viewModel.completeHabit() },
                 onUpdateReminder = { enabled, minutes -> viewModel.updateReminder(enabled, minutes) },
                 onConfettiShown = { viewModel.onConfettiShown() },
-                onErrorShown = { viewModel.onErrorShown() }
+                onErrorShown = { viewModel.onErrorShown() },
+                onExactAlarmPermissionDialogShown = { viewModel.onExactAlarmPermissionDialogShown() }
             )
         }
     }
@@ -139,7 +167,8 @@ fun DetailScreenContent(
     onComplete: () -> Unit,
     onUpdateReminder: (Boolean, Int) -> Unit,
     onConfettiShown: () -> Unit,
-    onErrorShown: () -> Unit
+    onErrorShown: () -> Unit,
+    onExactAlarmPermissionDialogShown: () -> Unit
 ) {
     var showCalendar by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -149,6 +178,35 @@ fun DetailScreenContent(
     var parties by remember { mutableStateOf<List<Party>>(emptyList()) }
     val habit = uiState.habit
     val context = LocalContext.current
+
+    if (uiState.requiresExactAlarmPermission) {
+        ExactAlarmPermissionDialog(
+            onDismiss = { onExactAlarmPermissionDialogShown() },
+            onConfirm = {
+                onExactAlarmPermissionDialogShown()
+                // Open the app settings to let the user grant the permission
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        context.startActivity(this)
+                    }
+                }
+            }
+        )
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                // Permission granted, show the notification
+                habit?.let { showTestNotification(context, it) }
+            } else {
+                // Permission denied
+                Toast.makeText(context, "Notification permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -255,6 +313,23 @@ fun DetailScreenContent(
                 Text("View Completion Calendar", color = Color.White)
             }
             QuoteCard()
+            OutlinedButton(
+                onClick = { 
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                        showTestNotification(context, habit)
+                    } else {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color.Blue.copy(alpha = 0.4f)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.Notifications, contentDescription = "Test Notification", tint = Color.Blue.copy(alpha = 0.7f))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Test Notification", color = Color.Blue.copy(alpha = 0.7f))
+            }
             OutlinedButton(
                 onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -569,6 +644,28 @@ private fun ReminderSettingsDialog(
     )
 }
 
+@Composable
+fun ExactAlarmPermissionDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Permission Required") },
+        text = { Text("To ensure reminders are delivered on time, please grant the 'Alarms & Reminders' permission for HabitHero in the next screen.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Open Settings")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CustomReminderPicker(
@@ -855,10 +952,25 @@ fun QuoteCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Text("Every small step counts towards becoming the hero you want to be! 🧑‍🚀", Modifier.padding(16.dp), color = Color.White, textAlign = TextAlign.Center, fontSize = 12.sp)
+        Box(
+            modifier = Modifier
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(HeroGold.copy(alpha = 0.6f), Color(0xFF1F2937).copy(alpha = 0.6f))
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Text(
+                "Every small step counts towards becoming the hero you want to be! 🧑‍🚀",
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                fontSize = 12.sp
+            )
+        }
     }
 }
 

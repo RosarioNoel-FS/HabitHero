@@ -18,10 +18,11 @@ import java.util.UUID
 data class DetailUiState(
     val habit: Habit? = null,
     val isLoading: Boolean = true,
-    val isSaving: Boolean = false, // The new flag to prevent race conditions
+    val isSaving: Boolean = false,
     val error: String? = null,
     val isDeleted: Boolean = false,
-    val confettiEventId: String? = null
+    val confettiEventId: String? = null,
+    val requiresExactAlarmPermission: Boolean = false
 )
 
 class DetailViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
@@ -49,6 +50,24 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
 
     fun onConfettiShown() {
         _uiState.update { it.copy(confettiEventId = null) }
+    }
+
+    fun onExactAlarmPermissionDialogShown() {
+        _uiState.update { it.copy(requiresExactAlarmPermission = false) }
+    }
+
+    fun scheduleReminderOnResume() {
+        val currentHabit = _uiState.value.habit ?: return
+        // Only proceed if reminder is enabled and we now have permission
+        if (currentHabit.reminderEnabled && notificationScheduler.canScheduleExactAlarms()) {
+            viewModelScope.launch {
+                try {
+                    notificationScheduler.schedule(currentHabit)
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(error = "Failed to set device alert. Please try again.") }
+                }
+            }
+        }
     }
 
     private fun loadHabitDetails(isCompletion: Boolean = false) {
@@ -142,6 +161,13 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
         }
         val habitBeforeUpdate = _uiState.value.habit ?: return
 
+        // Check for permission before attempting to schedule
+        if (enabled && !notificationScheduler.canScheduleExactAlarms()) {
+            _uiState.update { it.copy(requiresExactAlarmPermission = true) }
+            // Even if permission is missing, save the user's setting to the database.
+            // The UI will prompt them to grant the permission.
+        }
+
         val optimisticallyUpdatedHabit = habitBeforeUpdate.copy(
             reminderEnabled = enabled, 
             reminderTimeMinutes = minutes
@@ -161,18 +187,17 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
                 }
                 db.collection("users").document(userId).collection("habits").document(habitId).update(updates).await()
                 
-                try {
+                // Only attempt to schedule if permission is granted
+                if (notificationScheduler.canScheduleExactAlarms()) {
                     if (optimisticallyUpdatedHabit.reminderEnabled) {
                         notificationScheduler.schedule(optimisticallyUpdatedHabit)
                     } else {
                         notificationScheduler.cancel(optimisticallyUpdatedHabit)
                     }
-                } catch (schedulingError: Exception) {
-                    _uiState.update { it.copy(error = "Reminder saved, but failed to set device alert.") }
                 }
 
             } catch (databaseError: Exception) {
-                _uiState.update { it.copy(habit = habitBeforeUpdate, error = "Failed to save reminder to cloud.") }
+                _uiState.update { it.copy(habit = habitBeforeUpdate, error = "Failed to save reminder.") }
             } finally {
                 _uiState.update { it.copy(isSaving = false) }
             }
