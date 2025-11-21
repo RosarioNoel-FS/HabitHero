@@ -99,7 +99,7 @@ fun MainScreen() {
         containerColor = Color.Transparent, // Let the theme gradient show through
         bottomBar = {
             NavigationBar(
-                containerColor = Color.Transparent, // Make navigation bar transparent
+                containerColor = Color(0xFF010710), // Set a dark blue color
             ) {
                 bottomNavItems.forEach { screen ->
                     val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true

@@ -11,7 +11,7 @@ val GoldTransparent = Color(0x33FFC107) // 20% alpha gold
 
 // New Gradient Colors
 val NightSkyStart = Color(0xFF01060E) // Darker blue-black
-val NightSkyEnd = Color(0xFF020E1F)   // Slightly lighter dark blue
+val NightSkyEnd = Color(0xFF031228)   // Slightly lighter dark blue
 
 // A card color designed to stand out against the NightSky gradient
 val MidnightCard = Color(0xFF1F2937) // A muted, dark grayish-blue
