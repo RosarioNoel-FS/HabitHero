@@ -1,6 +1,6 @@
 package com.example.habithero
 
-import android.widget.TimePicker
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,25 +16,26 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import com.example.habithero.ui.theme.HeroGold
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StyledTimePickerDialog(
     initialHour: Int,
@@ -42,8 +43,11 @@ fun StyledTimePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int, Int) -> Unit
 ) {
-    var selectedHour by remember { mutableStateOf(initialHour) }
-    var selectedMinute by remember { mutableStateOf(initialMinute) }
+    val timePickerState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false
+    )
     val haptics = LocalHapticFeedback.current
 
     Dialog(onDismissRequest = onDismiss) {
@@ -67,19 +71,25 @@ fun StyledTimePickerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                AndroidView(
-                    factory = { context ->
-                        TimePicker(context).apply {
-                            setIs24HourView(false)
-                            hour = selectedHour
-                            minute = selectedMinute
-                            setOnTimeChangedListener { _, hourOfDay, minuteOfHour ->
-                                selectedHour = hourOfDay
-                                selectedMinute = minuteOfHour
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                TimePicker(
+                    state = timePickerState,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = Color.Transparent,
+                        clockDialSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                        clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        selectorColor = HeroGold,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        periodSelectorBorderColor = HeroGold,
+                        periodSelectorSelectedContainerColor = HeroGold,
+                        periodSelectorUnselectedContainerColor = Color.Transparent,
+                        periodSelectorSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                        periodSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        timeSelectorSelectedContainerColor = HeroGold,
+                        timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surface,
+                        timeSelectorSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                        timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -95,9 +105,9 @@ fun StyledTimePickerDialog(
                     Button(
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onConfirm(selectedHour, selectedMinute)
+                            onConfirm(timePickerState.hour, timePickerState.minute)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD600)) // Hero Gold
+                        colors = ButtonDefaults.buttonColors(containerColor = HeroGold)
                     ) {
                         Text("Confirm", color = Color.Black)
                     }

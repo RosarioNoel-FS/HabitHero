@@ -33,6 +33,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +57,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -69,17 +72,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.habithero.ui.theme.GoldTransparent
 import com.example.habithero.ui.theme.HeroGold
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 // Represents the time-of-day sections
-enum class TimeOfDay(val title: String, val emoji: String, val timeRange: String) {
-    Morning("Morning", "🌅", "5:00 AM – 11:59 AM"),
-    Afternoon("Afternoon", "🌤️", "12:00 PM – 5:59 PM"),
-    Night("Night", "🌙", "6:00 PM – 4:59 AM")
+enum class TimeOfDay(val title: String, val timeRange: String, val banner: Int) {
+    Morning("Morning", "5:00 AM – 11:59 AM", R.drawable.morning_banner),
+    Afternoon("Afternoon", "12:00 PM – 5:59 PM", R.drawable.afternoon_banner),
+    Night("Night", "6:00 PM – 4:59 AM", R.drawable.night_banner)
 }
 
 fun getHabitTimeOfDay(habit: Habit): TimeOfDay {
@@ -156,20 +159,35 @@ fun HomeScreenContent(
         )
     }
 
-    // Animation for the FAB
     val fabScale = remember { Animatable(1f) }
+    val fabShadow = remember { Animatable(6f) }
     LaunchedEffect(isFirstTime) {
         if (isFirstTime) {
-            fabScale.animateTo(
-                targetValue = 1.1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 800),
-                    repeatMode = RepeatMode.Reverse
+            // Pulse animation for scale
+            launch {
+                fabScale.animateTo(
+                    targetValue = 1.2f, // Increased scale
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 600), // Faster pulse
+                        repeatMode = RepeatMode.Reverse
+                    )
                 )
-            )
+            }
+            // Pulse animation for shadow
+            launch {
+                fabShadow.animateTo(
+                    targetValue = 16f, // Increased shadow
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 600), // Faster pulse
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+            }
         } else {
             fabScale.stop()
+            fabShadow.stop()
             fabScale.snapTo(1f)
+            fabShadow.snapTo(6f)
         }
     }
 
@@ -183,7 +201,8 @@ fun HomeScreenContent(
                 },
                 containerColor = colorScheme.primary,
                 shape = shapes.extraLarge,
-                modifier = Modifier.scale(fabScale.value)
+                modifier = Modifier.scale(fabScale.value),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = fabShadow.value.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = colorScheme.onPrimary)
             }
@@ -290,21 +309,38 @@ fun EmptyState() {
 @Composable
 fun TimeOfDayHeader(timeOfDay: TimeOfDay) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(145.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = GoldTransparent),
-        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(timeOfDay.emoji, fontSize = 24.sp)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(timeOfDay.title, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
-                Text(timeOfDay.timeRange, color = Color.Gray, fontSize = 14.sp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = timeOfDay.banner),
+                contentDescription = "${timeOfDay.title} banner",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.5f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(timeOfDay.title, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 22.sp)
+                    Text(timeOfDay.timeRange, color = Color.White.copy(alpha = 0.9f), fontSize = 16.sp)
+                }
             }
         }
     }

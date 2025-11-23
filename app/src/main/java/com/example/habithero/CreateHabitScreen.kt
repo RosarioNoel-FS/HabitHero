@@ -1,13 +1,17 @@
 package com.example.habithero
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,14 +19,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
@@ -30,10 +39,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -55,11 +70,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.habithero.ui.theme.HeroGold
@@ -67,15 +85,16 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 // Main Screen Composable
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateHabitScreen(
     viewModel: CreateHabitViewModel = viewModel(),
     onHabitCreatedOrUpdated: () -> Unit,
-    onBackClick: () -> Unit,
-    onCategoryClick: () -> Unit
+    onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showTimePicker by remember { mutableStateOf(false) }
+    var showEmojiDialog by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
     // Always load current habit data once when this screen is opened
@@ -101,6 +120,17 @@ fun CreateHabitScreen(
         )
     }
 
+    if (showEmojiDialog) {
+        EmojiPickerDialog(
+            selectedEmoji = uiState.habitEmoji,
+            onEmojiSelected = { emoji ->
+                viewModel.onHabitEmojiChanged(emoji)
+                showEmojiDialog = false
+            },
+            onDismiss = { showEmojiDialog = false }
+        )
+    }
+
     Scaffold(
         topBar = {
             Row(Modifier.fillMaxWidth()) {
@@ -112,7 +142,21 @@ fun CreateHabitScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        bottomBar = {
+            Box(modifier = Modifier.padding(16.dp)) {
+                Button(
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.saveHabit()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Text(if (uiState.isEditMode) "Save Changes" else "Create Habit")
+                }
+            }
+        },
+        containerColor = colorScheme.background
     ) {
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -124,10 +168,10 @@ fun CreateHabitScreen(
                     .padding(it)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(if (uiState.isEditMode) "Edit Habit" else "Create New Habit", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                Text(if (uiState.isEditMode) "Edit Habit" else "Create New Habit", style = typography.headlineMedium, color = Color.White)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
@@ -141,24 +185,73 @@ fun CreateHabitScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = uiState.habitEmoji,
-                    onValueChange = viewModel::onHabitEmojiChanged,
-                    label = { Text("Emoji (e.g. 🔥)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = customTextFieldColors()
-                )
+                var expanded by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = uiState.selectedCategory,
+                        onValueChange = {},
+                        label = { Text("Category") },
+                        leadingIcon = {
+                            if (uiState.iconUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = uiState.iconUrl,
+                                    contentDescription = "Category Icon",
+                                    modifier = Modifier.size(32.dp).padding(start = 8.dp)
+                                )
+                            }
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        readOnly = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            disabledTextColor = Color.White,
+                            focusedContainerColor = colorScheme.surface,
+                            unfocusedContainerColor = colorScheme.surface,
+                            disabledContainerColor = colorScheme.surface,
+                            focusedBorderColor = HeroGold,
+                            unfocusedBorderColor = Color.Gray,
+                            disabledBorderColor = Color.Gray,
+                            focusedLabelColor = HeroGold,
+                            unfocusedLabelColor = Color.Gray,
+                            disabledLabelColor = Color.Gray,
+                            focusedLeadingIconColor = Color.White,
+                            unfocusedLeadingIconColor = Color.White,
+                            disabledLeadingIconColor = Color.White,
+                            focusedTrailingIconColor = HeroGold,
+                            unfocusedTrailingIconColor = Color.Gray,
+                            disabledTrailingIconColor = Color.Gray,
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(colorScheme.surface)
+                    ) {
+                        uiState.categories.forEach { (categoryName, iconUrl) ->
+                            DropdownMenuItem(
+                                text = { Text(categoryName, color = if (categoryName == uiState.selectedCategory) HeroGold else Color.White) },
+                                onClick = {
+                                    viewModel.onCategorySelected(categoryName, iconUrl)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                CategorySelector(
-                    iconUrl = uiState.iconUrl,
-                    categoryName = uiState.selectedCategory,
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onCategoryClick()
-                    }
+                EmojiDisplay(
+                    emoji = uiState.habitEmoji,
+                    onClick = { showEmojiDialog = true }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -179,7 +272,7 @@ fun CreateHabitScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Daily Deadline: ${format.format(calendar.time)}", color = Color.White)
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 ReminderSection(
@@ -187,19 +280,105 @@ fun CreateHabitScreen(
                     reminderMinutes = uiState.reminderTimeMinutes,
                     onReminderChange = viewModel::onReminderChanged
                 )
+                Spacer(modifier = Modifier.height(16.dp)) // Add some final padding
+            }
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.weight(1f))
+@Composable
+fun EmojiDisplay(emoji: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Selected Emoji", style = typography.titleMedium, color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(colorScheme.surface)
+                .border(1.dp, HeroGold, CircleShape)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = emoji.ifBlank { "✏️" },
+                fontSize = 40.sp
+            )
+        }
+    }
+}
 
-                Button(
-                    onClick = { 
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.saveHabit() 
-                    },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(50)
+@Composable
+private fun EmojiPickerDialog(
+    selectedEmoji: String,
+    onEmojiSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(if (uiState.isEditMode) "Save Changes" else "Create Habit")
+                    Text(
+                        "Choose an Emoji",
+                        style = typography.titleLarge,
+                        color = Color.White
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.Gray)
+                    }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                EmojiGrid(selectedEmoji = selectedEmoji, onEmojiSelected = onEmojiSelected)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmojiGrid(selectedEmoji: String, onEmojiSelected: (String) -> Unit) {
+    val emojis = listOf(
+        "🔥", "💧", "🧘", "🏋️", "🥗", "📖", "🎨", "💻", "💰", "✈️",
+        "💡", "🤔", "💪", "👍", "🙌", "🎉", "✨", "💖", "🚀", "🌟",
+        "🧠", "🚗", "🏃", "🚶", "🏞️", "🌅", "🌇", "✅", "📝", "📞",
+        "🎮", "🎸", "🖌️", "📷", "💼", "📈", "📊", "💊", "😴", "🏆",
+        "🥇", "🌱", "🎯", "⏰", "❤️"
+    )
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 48.dp),
+        modifier = Modifier.height(240.dp),
+        contentPadding = PaddingValues(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(emojis) { emoji ->
+            Box(
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .clip(CircleShape)
+                    .background(
+                        if (emoji == selectedEmoji) HeroGold.copy(alpha = 0.3f)
+                        else colorScheme.surface
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (emoji == selectedEmoji) HeroGold else Color.Gray.copy(alpha = 0.5f),
+                        shape = CircleShape
+                    )
+                    .clickable { onEmojiSelected(emoji) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(emoji, fontSize = 24.sp)
             }
         }
     }
@@ -261,9 +440,9 @@ private fun ReminderSection(
                 Column {
                     Text("Alert", fontWeight = FontWeight.Bold, color = Color.White)
                     if (reminderEnabled) {
-                        Text(formatReminderMinutes(reminderMinutes), color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                        Text(formatReminderMinutes(reminderMinutes), color = Color.Gray, style = typography.bodySmall)
                     } else {
-                        Text("Off", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                        Text("Off", color = Color.Gray, style = typography.bodySmall)
                     }
                 }
             }
@@ -297,7 +476,7 @@ private fun ReminderSettingsDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("On", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                    Text("On", color = Color.White, style = typography.bodyLarge)
                     Switch(checked = enabled, onCheckedChange = { enabled = it }, colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = HeroGold,
@@ -324,7 +503,7 @@ private fun ReminderSettingsDialog(
                         ) {
                             RadioButton(
                                 selected = (minutes == preset && !isCustom),
-                                onClick = { 
+                                onClick = {
                                     minutes = preset
                                     isCustom = false
                                 },
@@ -405,7 +584,7 @@ private fun CustomReminderPicker(
         verticalAlignment = Alignment.CenterVertically
     ) {
         ScrollableNumberPicker(items = numbers, state = numberState)
-        
+
         Spacer(Modifier.width(16.dp))
 
         Column {
@@ -443,56 +622,17 @@ private fun ScrollableNumberPicker(
         modifier = Modifier
             .height(itemHeight * 3)
             .width(100.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = itemHeight),
+        contentPadding = PaddingValues(vertical = itemHeight),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         items(items.size) { index ->
             Text(
                 text = items[index],
-                style = if (index == centralIndex) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
+                style = if (index == centralIndex) typography.titleLarge else typography.bodyLarge,
                 color = if (index == centralIndex) Color.White else Color.Gray,
-                modifier = Modifier.padding(vertical = (itemHeight - MaterialTheme.typography.titleLarge.lineHeight.value.dp)/2)
+                modifier = Modifier.padding(vertical = (itemHeight - typography.titleLarge.lineHeight.value.dp)/2)
             )
         }
-    }
-}
-
-
-// --- COMMON AND PREVIOUSLY EXISTING COMPOSABLES (UNMODIFIED) ---
-
-@Composable
-fun CategorySelector(iconUrl: String, categoryName: String, onClick: () -> Unit) {
-    Box(modifier = Modifier.clickable(onClick = onClick)) {
-        OutlinedTextField(
-            value = if (categoryName.isNotBlank()) categoryName else "",
-            onValueChange = {},
-            placeholder = { Text("Select a category", color = Color.Gray) },
-            label = { Text("Category") },
-            leadingIcon = {
-                if (iconUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = iconUrl,
-                        contentDescription = "Category Icon",
-                        modifier = Modifier.size(32.dp).padding(start = 8.dp)
-                    )
-                }
-            },
-            trailingIcon = {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Select Category")
-            },
-            modifier = Modifier.fillMaxWidth(),
-            readOnly = true,
-            enabled = false, // To allow click on parent Box
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = Color.White,
-                disabledLabelColor = Color.Gray,
-                disabledBorderColor = Color.Gray,
-                disabledLeadingIconColor = Color.White,
-                disabledTrailingIconColor = Color.White,
-                disabledContainerColor = MaterialTheme.colorScheme.surface,
-                disabledPlaceholderColor = Color.Gray
-            )
-        )
     }
 }
 
@@ -505,8 +645,8 @@ private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedBorderColor = Color.Gray,
     focusedLabelColor = Color.White,
     unfocusedLabelColor = Color.Gray,
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    focusedContainerColor = colorScheme.surface,
+    unfocusedContainerColor = colorScheme.surface,
     disabledTextColor = Color.Gray,
     disabledLabelColor = Color.Gray
 )

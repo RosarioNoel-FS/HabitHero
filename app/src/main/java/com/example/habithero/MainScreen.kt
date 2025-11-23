@@ -197,24 +197,15 @@ fun MainScreen() {
             }
             composable(Screen.ChooseCategory.route) {
                 val chooseCategoryViewModel: ChooseCategoryViewModel = viewModel()
-                val categoriesMap by chooseCategoryViewModel.categories.collectAsState()
-                val cameFromCreateHabit = navController.previousBackStackEntry?.destination?.route?.startsWith("create_habit") == true
 
                 ChooseCategoryScreen(
                     viewModel = chooseCategoryViewModel,
                     onBackClick = { navController.popBackStack() },
                     onCategoryClick = { categoryName ->
-                        if (cameFromCreateHabit) {
-                            val iconUrl = categoriesMap[categoryName] ?: ""
-                            navController.previousBackStackEntry?.savedStateHandle?.set("category_name", categoryName)
-                            navController.previousBackStackEntry?.savedStateHandle?.set("category_icon_url", iconUrl)
-                            navController.popBackStack()
+                        if (categoryName == "Create Your Own") {
+                            navController.navigate(Screen.CreateHabit.createRoute())
                         } else {
-                            if (categoryName == "Create Your Own") {
-                                navController.navigate(Screen.CreateHabit.createRoute())
-                            } else {
-                                navController.navigate(Screen.HabitSelection.createRoute(categoryName))
-                            }
+                            navController.navigate(Screen.HabitSelection.createRoute(categoryName))
                         }
                     }
                 )
@@ -245,17 +236,6 @@ fun MainScreen() {
                 val createHabitViewModel: CreateHabitViewModel = viewModel()
                 val habitId = backStackEntry.arguments?.getString("habitId")
 
-                val categoryName by backStackEntry.savedStateHandle.getLiveData<String>("category_name").observeAsState()
-                val categoryIconUrl by backStackEntry.savedStateHandle.getLiveData<String>("category_icon_url").observeAsState()
-
-                LaunchedEffect(categoryName, categoryIconUrl) {
-                    if (categoryName != null && categoryIconUrl != null) {
-                        createHabitViewModel.onCategorySelected(categoryName!!, categoryIconUrl!!)
-                        backStackEntry.savedStateHandle.remove<String>("category_name")
-                        backStackEntry.savedStateHandle.remove<String>("category_icon_url")
-                    }
-                }
-
                 CreateHabitScreen(
                     viewModel = createHabitViewModel,
                     onHabitCreatedOrUpdated = {
@@ -266,8 +246,7 @@ fun MainScreen() {
                             navController.popBackStack(Screen.Home.route, inclusive = false)
                         }
                     },
-                    onBackClick = { navController.popBackStack() },
-                    onCategoryClick = { navController.navigate(Screen.ChooseCategory.route) }
+                    onBackClick = { navController.popBackStack() }
                 )
             }
             composable(

@@ -82,6 +82,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -312,7 +313,7 @@ fun DetailScreenContent(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("View Completion Calendar", color = Color.White)
             }
-            QuoteCard()
+            InspirationalBanner()
             OutlinedButton(
                 onClick = { 
                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
@@ -948,27 +949,36 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
 }
 
 @Composable
-fun QuoteCard() {
+fun InspirationalBanner() {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(150.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
     ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(HeroGold.copy(alpha = 0.6f), Color(0xFF1F2937).copy(alpha = 0.6f))
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Image(
+                painter = painterResource(id = R.drawable.detail_banner),
+                contentDescription = "Inspirational Banner",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
                     )
-                )
-                .padding(16.dp)
-        ) {
+            )
             Text(
-                "Every small step counts towards becoming the hero you want to be! 🧑‍🚀",
+                text = "Every small step counts towards becoming the hero you want to be!",
                 color = Color.White,
                 textAlign = TextAlign.Center,
-                fontSize = 12.sp
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(16.dp)
             )
         }
     }
