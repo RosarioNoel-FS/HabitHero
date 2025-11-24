@@ -263,12 +263,3 @@ fun MainScreen() {
         }
     }
 }
-
-// --- Placeholder Screens --- //
-
-@Composable
-fun RewardsScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Rewards Screen - Coming Soon!")
-    }
-}

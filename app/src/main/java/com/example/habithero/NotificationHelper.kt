@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.example.habithero.model.Habit
 
 const val CHANNEL_ID = "HABIT_REMINDER_CHANNEL"
 

@@ -77,6 +77,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.habithero.model.Habit
 import com.example.habithero.ui.theme.HeroGold
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat

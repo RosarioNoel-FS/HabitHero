@@ -1,4 +1,4 @@
-package com.example.habithero
+package com.example.habithero.model
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.Exclude
@@ -83,7 +83,7 @@ data class Habit(
                 val completionDateTime = Instant.ofEpochMilli(date.time)
                     .atZone(ZoneId.systemDefault())
                     .toLocalDateTime()
-                
+
                 val deadlineForCompletionDay = completionDateTime.toLocalDate().atTime(completionHour, completionMinute)
 
                 if (completionDateTime < deadlineForCompletionDay) {
@@ -108,7 +108,7 @@ data class Habit(
             } else {
                 today
             }
-            
+
             // Now, iterate through the effective completion dates and see how long the chain is.
             for (date in uniqueEffectiveDates) {
                 if (date == expectedDate) {

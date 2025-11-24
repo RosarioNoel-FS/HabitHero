@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.habithero.model.Habit
 import com.example.habithero.ui.theme.HeroGold
 import com.example.habithero.ui.theme.HeroGoldDark
 import com.example.habithero.ui.theme.HeroGoldLight
@@ -171,7 +172,4 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
                 }
             }
 
-            Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = Color.White)
-        }
-    }
-}
+            Icon(Icons.Default.Add, contentDescription = "Add Habit

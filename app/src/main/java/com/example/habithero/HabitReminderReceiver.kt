@@ -9,6 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.example.habithero.data.FirebaseHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -86,6 +87,4 @@ class HabitReminderReceiver : BroadcastReceiver() {
     companion object {
         const val EXTRA_HABIT_ID = "EXTRA_HABIT_ID"
         const val EXTRA_HABIT_NAME = "EXTRA_HABIT_NAME"
-        private const val CHANNEL_ID = "HABIT_REMINDER_CHANNEL"
-    }
-}
+        private const v

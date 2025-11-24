@@ -1,4 +1,4 @@
-package com.example.habithero
+package com.example.habithero.model
 
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date

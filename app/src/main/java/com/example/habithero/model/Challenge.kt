@@ -1,4 +1,4 @@
-package com.example.habithero
+package com.example.habithero.model
 
 import com.google.firebase.firestore.PropertyName
 
@@ -31,5 +31,4 @@ data class HabitTemplate(
     val emoji: String = "",
     val completionHour: Int = 0,
     val completionMinute: Int = 0,
-    @get:PropertyName("iconUrl") @set:PropertyName("iconUrl") var iconUrl: String = "",
-)
+    @get:PropertyName("iconUrl") @set:PropertyName("iconUrl") var iconUrl: String = 

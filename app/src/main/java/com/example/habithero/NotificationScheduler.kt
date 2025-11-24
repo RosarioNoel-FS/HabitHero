@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
+import com.example.habithero.model.Habit
 import java.util.Calendar
 
 class NotificationScheduler(private val context: Context) {

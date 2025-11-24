@@ -1,23 +1,36 @@
-package com.example.habithero
+package com.example.habithero.data
 
-import android.net.Uri
 import android.util.Log
+import com.example.habithero.model.Category
+import com.example.habithero.model.Habit
+import com.example.habithero.model.UserStats
 import com.google.firebase.Timestamp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class FirebaseHelper {
 
     private val db = FirebaseFirestore.getInstance()
 
-    // --- Suspend Functions for Modern Architecture ---
+    suspend fun initializeUserStats(userId: String) {
+        val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")
+        try {
+            val statsDoc = statsRef.get().await()
+            if (!statsDoc.exists()) {
+                statsRef.set(UserStats(), SetOptions.merge()).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error initializing user stats", e)
+        }
+    }
 
     suspend fun fetchUserHabitsSuspend(userId: String): List<Habit> {
         return try {
@@ -28,6 +41,16 @@ class FirebaseHelper {
             task.mapNotNull { document -> documentToHabit(document) }
         } catch (e: Exception) {
             Log.e("FirebaseHelper", "Error fetching habits via suspend function: ", e)
+            throw e
+        }
+    }
+
+    suspend fun getUserStats(userId: String): UserStats? {
+        return try {
+            val document = db.collection("users").document(userId).collection("stats").document("user_stats").get().await()
+            document.toObject(UserStats::class.java)
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching user stats: ", e)
             throw e
         }
     }
@@ -58,13 +81,22 @@ class FirebaseHelper {
         }
     }
 
-    suspend fun addHabitSuspend(userId: String, habit: Habit): DocumentReference {
-        return try {
-            db.collection("users").document(userId).collection("habits").add(habit).await()
-        } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Error adding habit via suspend function", e)
-            throw e
-        }
+    suspend fun addHabitAndUpdateStats(userId: String, habit: Habit) {
+        val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")
+        val habitRef = db.collection("users").document(userId).collection("habits").document()
+
+        db.runTransaction { transaction ->
+            // Atomically increment the habit counters
+            transaction.update(statsRef, "habitsCreated", FieldValue.increment(1))
+            transaction.update(statsRef, "activeHabits", FieldValue.increment(1))
+            // Use dot notation to increment a field within a map
+            transaction.update(statsRef, "categoryCounts.${habit.category}", FieldValue.increment(1))
+
+            // Add the new habit
+            transaction.set(habitRef, habit)
+
+            null // Firestore transactions require a return value
+        }.await()
     }
 
     suspend fun updateHabitSuspend(userId: String, habit: Habit) {
@@ -76,22 +108,17 @@ class FirebaseHelper {
         }
     }
 
-    suspend fun deleteHabit(userId: String, habitId: String) {
-        try {
-            db.collection("users").document(userId).collection("habits").document(habitId).delete().await()
-        } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Error deleting habit: ", e)
-            throw e // Re-throw to be handled by ViewModel
-        }
-    }
-
     suspend fun deleteHabitSuspend(userId: String, habitId: String) {
-        try {
-            db.collection("users").document(userId).collection("habits").document(habitId).delete().await()
-        } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Error deleting habit via suspend function", e)
-            throw e
-        }
+        val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")
+        val habitRef = db.collection("users").document(userId).collection("habits").document(habitId)
+
+        db.runTransaction { transaction ->
+            // Decrement active habits
+            transaction.update(statsRef, "activeHabits", FieldValue.increment(-1))
+            // Delete habit
+            transaction.delete(habitRef)
+            null
+        }.await()
     }
 
     private fun documentToHabit(document: DocumentSnapshot): Habit? {
@@ -105,13 +132,12 @@ class FirebaseHelper {
                 completionHour = (document.getLong("completionHour") ?: 21L).toInt(),
                 completionMinute = (document.getLong("completionMinute") ?: 0L).toInt(),
                 iconUrl = document.getString("iconUrl") ?: "",
-                completionCount = completionDates.size, // This is the fix
+                completionCount = completionDates.size,
                 completionDates = completionDates,
                 reminderEnabled = document.getBoolean("reminderEnabled") ?: false,
                 reminderTimeMinutes = (document.getLong("reminderTimeMinutes") ?: 15L).toInt(),
                 sourceChallengeId = document.getString("sourceChallengeId"),
                 sourceTemplateId = document.getString("sourceTemplateId"),
-                // Deprecated fields, kept for Firestore compatibility
                 completed = document.getBoolean("completed") ?: false,
                 timestamp = document.getTimestamp("timestamp") ?: Timestamp.now()
             )

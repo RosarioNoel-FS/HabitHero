@@ -98,6 +98,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
+import com.example.habithero.model.Habit
 import com.example.habithero.ui.theme.CompletedGreen
 import com.example.habithero.ui.theme.HeroGold
 import java.text.SimpleDateFormat
