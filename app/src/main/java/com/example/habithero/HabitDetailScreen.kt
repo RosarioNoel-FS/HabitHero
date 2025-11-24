@@ -75,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -97,6 +98,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
+import com.example.habithero.ui.theme.CompletedGreen
 import com.example.habithero.ui.theme.HeroGold
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -634,11 +636,7 @@ private fun ReminderSettingsDialog(
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(enabled, minutes) }) {
-                Text("Done", color = HeroGold)
-            }
-        },
+        confirmButton = { TextButton(onClick = { onConfirm(enabled, minutes) }) { Text("Done", color = HeroGold) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = Color.White) } },
         containerColor = Color(0xFF1F2937),
         tonalElevation = 0.dp
@@ -749,7 +747,7 @@ private fun ScrollableNumberPicker(
         modifier = Modifier
             .height(itemHeight * 3)
             .width(100.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = itemHeight),
+        contentPadding = PaddingValues(vertical = itemHeight),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         items(items.size) { index ->
@@ -917,11 +915,28 @@ fun DeadlineCard(habit: Habit) {
 @Composable
 fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
     val haptics = LocalHapticFeedback.current
+    val cardModifier = if (habit.isCompletedToday) {
+        Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 16.dp,
+                spotColor = CompletedGreen,
+                ambientColor = CompletedGreen,
+                shape = RoundedCornerShape(16.dp)
+            )
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = cardModifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
+        border = if (habit.isCompletedToday) {
+            BorderStroke(2.dp, CompletedGreen)
+        } else {
+            BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
+        }
     ) {
         Box(modifier = Modifier.padding(32.dp).fillMaxSize(), contentAlignment = Alignment.Center) {
             if (!habit.isCompletedToday) {
@@ -938,7 +953,7 @@ fun CompletionCard(habit: Habit, onComplete: () -> Unit) {
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.CheckCircle, "Completed", tint = Color(0xFF32CD32), modifier = Modifier.size(50.dp))
+                    Icon(Icons.Filled.CheckCircle, "Completed", tint = CompletedGreen, modifier = Modifier.size(50.dp))
                     Spacer(Modifier.height(8.dp))
                     Text("Completed Today! 🎉", style = MaterialTheme.typography.titleLarge, color = Color.White)
                     Text("Amazing work! You\'ve completed this habit for today.", color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)

@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -44,6 +45,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.habithero.ui.theme.HeroGold
+import com.example.habithero.ui.theme.HeroGoldDark
+import com.example.habithero.ui.theme.HeroGoldLight
 
 data class CategoryInfo(val name: String, val description: String, val iconUrl: String)
 
@@ -98,6 +101,9 @@ fun ChooseCategoryScreen(
 @Composable
 fun CategoryRow(category: CategoryInfo, onClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
+    val gradient = Brush.verticalGradient(
+        colors = listOf(HeroGoldLight, HeroGold)
+    )
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -117,11 +123,11 @@ fun CategoryRow(category: CategoryInfo, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(60.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(HeroGold), // Use consistent HeroGold for the icon background
+                    .background(gradient),
                 contentAlignment = Alignment.Center
             ) {
                 if (category.name == "Create Your Own") {
-                    Icon(Icons.Default.Add, contentDescription = "Create Your Own", tint = Color.Black, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.Add, contentDescription = "Create Your Own", tint = Color.White, modifier = Modifier.size(32.dp))
                 } else {
                     AsyncImage(
                         model = category.iconUrl,

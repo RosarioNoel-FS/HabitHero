@@ -1,8 +1,11 @@
 package com.example.habithero
 
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,7 +40,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.shapes
 import androidx.compose.material3.MaterialTheme.typography
@@ -59,6 +62,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -66,6 +70,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -241,7 +246,7 @@ fun HomeScreenContent(
 
                                 SwipeToDismissBox(
                                     state = dismissState,
-                                    backgroundContent = { 
+                                    backgroundContent = {
                                         val color = when (dismissState.targetValue) {
                                             SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.4f)
                                             else -> Color.Transparent
@@ -259,7 +264,7 @@ fun HomeScreenContent(
                                                 tint = Color.White
                                             )
                                         }
-                                     },
+                                    },
                                     enableDismissFromEndToStart = true,
                                     enableDismissFromStartToEnd = false
                                 ) {
@@ -386,6 +391,7 @@ fun WelcomeHeader(name: String, isFirstTime: Boolean, onSettingsClick: () -> Uni
 @Composable
 fun HabitListItem(habit: Habit, onClick: () -> Unit) {
     val isCompleted = habit.isCompletedToday
+    val isChallenge = habit.sourceChallengeId != null
     val haptics = LocalHapticFeedback.current
 
     val calendar = Calendar.getInstance().apply {
@@ -395,24 +401,32 @@ fun HabitListItem(habit: Habit, onClick: () -> Unit) {
     val format = SimpleDateFormat("h:mm a", Locale.getDefault())
     val deadlineTime = format.format(calendar.time)
 
-    val cardModifier = if (isCompleted) {
-        Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 8.dp, spotColor = HeroGold, shape = shapes.large)
-            .clickable { 
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            }
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .clickable { 
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            }
-    }
+    val cardModifier = Modifier
+        .fillMaxWidth()
+        .shadow(
+            elevation = if (isCompleted) 12.dp else 0.dp, // Increased elevation
+            spotColor = HeroGold,
+            ambientColor = HeroGold, // Added ambient color
+            shape = shapes.large
+        )
+        .clickable {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        }
 
-    val border = if (isCompleted) {
+    val border = if (isChallenge) {
+        val infiniteTransition = rememberInfiniteTransition(label = "challenge-border")
+        val shimmerColor by infiniteTransition.animateColor(
+            initialValue = HeroGold,
+            targetValue = Color.White,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1500),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "shimmer"
+        )
+        BorderStroke(2.dp, shimmerColor)
+    } else if (isCompleted) {
         BorderStroke(1.dp, HeroGold)
     } else {
         BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
@@ -435,8 +449,17 @@ fun HabitListItem(habit: Habit, onClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "${habit.emoji} ${habit.name}".trim(), style = typography.titleMedium, fontWeight = FontWeight.Bold)
-                Row {
+                Text(
+                    text = "${habit.emoji} ${habit.name}".trim(),
+                    style = typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isChallenge) {
+                        Icon(Icons.Default.EmojiEvents, contentDescription = "Challenge Habit", tint = HeroGold, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Text("🔥 ${habit.streakCount} day streak", style = typography.bodyMedium, color = colorScheme.secondary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("🕓 by $deadlineTime", style = typography.bodyMedium, color = colorScheme.secondary)
@@ -450,10 +473,24 @@ fun HabitListItem(habit: Habit, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 if (isCompleted) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "check-pulse")
+                    val pulse by infiniteTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "pulse"
+                    )
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(HeroGold.copy(alpha = 0.2f), shape = CircleShape),
+                            .scale(pulse)
+                            .background(
+                                brush = SolidColor(HeroGold.copy(alpha = 0.2f)),
+                                shape = CircleShape
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(

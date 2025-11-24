@@ -2,6 +2,7 @@ package com.example.habithero
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -49,6 +51,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.habithero.ui.theme.HeroGold
+import com.example.habithero.ui.theme.HeroGoldDark
+import com.example.habithero.ui.theme.HeroGoldLight
 
 @Composable
 fun HabitSelectionScreen(
@@ -128,8 +132,16 @@ fun HabitSelectionScreen(
 @Composable
 fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
     val haptics = LocalHapticFeedback.current
+    val gradient = Brush.verticalGradient(
+        colors = listOf(HeroGoldLight, HeroGold)
+    )
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { 
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAddClick() 
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
@@ -142,7 +154,7 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(HeroGold),
+                    .background(gradient),
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(model = habit.iconUrl, contentDescription = "Habit Icon", modifier = Modifier.size(28.dp))
@@ -159,12 +171,7 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
                 }
             }
 
-            IconButton(onClick = { 
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onAddClick() 
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = Color.White)
-            }
+            Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = Color.White)
         }
     }
 }
