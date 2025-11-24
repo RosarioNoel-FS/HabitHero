@@ -72,4 +72,12 @@ class HabitSelectionViewModel(savedStateHandle: SavedStateHandle) : ViewModel() 
         )
 
         viewModelScope.launch {
-         
+            try {
+                firebaseHelper.addHabitAndUpdateStats(userId, newHabit)
+                _uiState.update { it.copy(habitAdded = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to add habit") }
+            }
+        }
+    }
+}

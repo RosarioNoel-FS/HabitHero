@@ -172,4 +172,7 @@ fun AvailableHabitRow(habit: Habit, onAddClick: () -> Unit) {
                 }
             }
 
-            Icon(Icons.Default.Add, contentDescription = "Add Habit
+            Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = Color.White)
+        }
+    }
+}

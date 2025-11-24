@@ -87,4 +87,6 @@ class HabitReminderReceiver : BroadcastReceiver() {
     companion object {
         const val EXTRA_HABIT_ID = "EXTRA_HABIT_ID"
         const val EXTRA_HABIT_NAME = "EXTRA_HABIT_NAME"
-        private const v
+        private const val CHANNEL_ID = "HABIT_REMINDER_CHANNEL"
+    }
+}
