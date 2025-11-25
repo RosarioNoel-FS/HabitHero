@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Base.Theme.HabitHero" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">#04080B</item>
+        <item name="colorPrimary">@color/dark_yellow</item>
+    </style>
+
+    <style name="CustomTimePicker" parent="ThemeOverlay.MaterialComponents.TimePicker">
+        <item name="colorOnBackground">@color/basic_yellow</item>
+        <item name="colorOnSurface">@color/basic_yellow</item>
+        <item name="colorPrimary">@color/dark_yellow</item>
+    </style>
+
+    <style name="CustomSwitchStyle" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="colorControlActivated">@color/dark_yellow</item>
+    </style>
+
+    <style name="Theme.HabitHero" parent="Base.Theme.HabitHero" />
+</resources>
