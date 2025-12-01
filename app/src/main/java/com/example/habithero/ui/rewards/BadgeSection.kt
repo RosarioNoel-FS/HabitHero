@@ -12,10 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.habithero.model.Badge
+import com.example.habithero.data.BadgeWithState
 
 @Composable
-fun BadgeSection(sectionTitle: String, badges: List<Badge>) {
+fun BadgeSection(sectionTitle: String, badges: List<BadgeWithState>) {
     Column {
         Text(
             text = sectionTitle,
@@ -24,8 +24,8 @@ fun BadgeSection(sectionTitle: String, badges: List<Badge>) {
             modifier = Modifier.padding(bottom = 8.dp)
         )
         LazyRow {
-            items(badges) { badge ->
-                BadgeCard(badge = badge)
+            items(badges) { badgeWithState ->
+                BadgeCard(badgeWithState = badgeWithState)
             }
         }
     }

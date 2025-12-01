@@ -4,7 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.habithero.data.BadgeEvaluator
+import com.example.habithero.data.BadgesRepository
 import com.example.habithero.data.FirebaseHelper
+import com.example.habithero.data.LocalBadgeCatalog
 import com.example.habithero.model.Habit
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +32,8 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
     private val habitId: String = checkNotNull(savedStateHandle["habitId"])
     private val userId: String? = FirebaseAuth.getInstance().currentUser?.uid
     private val firebaseHelper = FirebaseHelper()
+    private val badgesRepository = BadgesRepository()
+    private val badgeEvaluator = BadgeEvaluator()
 
     private val _uiState = MutableStateFlow(DetailUiState())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
@@ -192,11 +197,26 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
             _uiState.update { it.copy(isSaving = true) }
             try {
                 firebaseHelper.completeHabitAndUpdateStats(userId, habitId)
-                loadHabitDetails(isCompletion = true)
+                loadHabitDetails(isCompletion = true) // Reload data and trigger confetti
+                checkAndUnlockBadges(userId) // Check for new badges
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to complete habit.") }
             } finally {
                 _uiState.update { it.copy(isSaving = false) }
+            }
+        }
+    }
+
+    private suspend fun checkAndUnlockBadges(userId: String) {
+        val userStats = firebaseHelper.getUserStats(userId) ?: return
+        val unlockedBadgeIds = badgesRepository.getUnlockedBadgeIds(userId)
+        val allBadges = LocalBadgeCatalog.getAllBadges()
+
+        allBadges.forEach { badge ->
+            if (badge.id !in unlockedBadgeIds) { // Check only non-unlocked badges
+                if (badgeEvaluator.evaluate(userStats, badge)) {
+                    badgesRepository.unlockBadge(userId, badge.id)
+                }
             }
         }
     }

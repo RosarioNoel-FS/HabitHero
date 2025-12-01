@@ -2,9 +2,10 @@ package com.example.habithero
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.habithero.data.BadgeWithState
+import com.example.habithero.data.BadgesRepository
 import com.example.habithero.data.FirebaseHelper
 import com.example.habithero.data.LocalBadgeCatalog
-import com.example.habithero.model.Badge
 import com.example.habithero.model.UserStats
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 
 data class BadgeSectionUiModel(
     val sectionTitle: String,
-    val badges: List<Badge>
+    val badges: List<BadgeWithState>
 )
 
 data class RewardsUiState(
@@ -32,22 +33,36 @@ class RewardsViewModel : ViewModel() {
 
     private val userId: String? = FirebaseAuth.getInstance().currentUser?.uid
     private val firebaseHelper = FirebaseHelper()
+    private val badgesRepository = BadgesRepository()
 
     init {
         loadData()
     }
 
     private fun loadData() {
+        if (userId == null) {
+            _uiState.update { it.copy(isLoading = false, error = "User not logged in.") }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val stats = if (userId != null) firebaseHelper.getUserStats(userId) else null
+                val stats = firebaseHelper.getUserStats(userId)
+                val unlockedBadgeIds = badgesRepository.getUnlockedBadgeIds(userId)
                 val allBadges = LocalBadgeCatalog.getAllBadges()
 
-                val badgeSections = allBadges
-                    .groupBy { it.categoryKey }
+                val badgesWithState = allBadges.map {
+                    BadgeWithState(
+                        badge = it,
+                        isUnlocked = it.id in unlockedBadgeIds
+                    )
+                }
+
+                val badgeSections = badgesWithState
+                    .groupBy { it.badge.categoryKey }
                     .map { (category, badges) ->
-                        BadgeSectionUiModel(category, badges.sortedBy { it.sortOrder })
+                        BadgeSectionUiModel(category, badges.sortedBy { it.badge.sortOrder })
                     }
                     .sortedBy { it.sectionTitle } // Sort sections alphabetically
 
