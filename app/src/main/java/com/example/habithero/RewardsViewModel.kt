@@ -3,6 +3,8 @@ package com.example.habithero
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.habithero.data.FirebaseHelper
+import com.example.habithero.data.LocalBadgeCatalog
+import com.example.habithero.model.Badge
 import com.example.habithero.model.UserStats
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,8 +13,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class BadgeSectionUiModel(
+    val sectionTitle: String,
+    val badges: List<Badge>
+)
+
 data class RewardsUiState(
-    val userStats: UserStats = UserStats(),
+    val userStats: UserStats? = null,
+    val badgeSections: List<BadgeSectionUiModel> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -26,21 +34,32 @@ class RewardsViewModel : ViewModel() {
     private val firebaseHelper = FirebaseHelper()
 
     init {
-        loadUserStats()
+        loadData()
     }
 
-    private fun loadUserStats() {
-        if (userId == null) {
-            _uiState.update { it.copy(error = "User not logged in", isLoading = false) }
-            return
-        }
-
+    private fun loadData() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val stats = firebaseHelper.getUserStats(userId)
-                _uiState.update { it.copy(userStats = stats ?: UserStats(), isLoading = false) }
+                val stats = if (userId != null) firebaseHelper.getUserStats(userId) else null
+                val allBadges = LocalBadgeCatalog.getAllBadges()
+
+                val badgeSections = allBadges
+                    .groupBy { it.categoryKey }
+                    .map { (category, badges) ->
+                        BadgeSectionUiModel(category, badges.sortedBy { it.sortOrder })
+                    }
+                    .sortedBy { it.sectionTitle } // Sort sections alphabetically
+
+                _uiState.update {
+                    it.copy(
+                        userStats = stats,
+                        badgeSections = badgeSections,
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to load stats: ${e.message}", isLoading = false) }
+                _uiState.update { it.copy(error = "Failed to load data: ${e.message}", isLoading = false) }
             }
         }
     }

@@ -114,6 +114,7 @@ class FirebaseHelper {
                 val currentBestStreak = statsSnapshot.getLong("bestStreak")?.toInt() ?: 0
                 val updates = mutableMapOf<String, Any>()
                 updates["totalCompleted"] = FieldValue.increment(1)
+                updates["currentStreak"] = newStreak
                 if (newStreak > currentBestStreak) {
                     updates["bestStreak"] = newStreak
                 }
@@ -122,6 +123,7 @@ class FirebaseHelper {
                 // If stats don't exist, create them with initial values
                 val newStats = UserStats(
                     totalCompleted = 1,
+                    currentStreak = newStreak,
                     bestStreak = newStreak,
                     // NOTE: This assumes a user completing a habit for the first time
                     // also has created at least one habit. This is a safe assumption.
