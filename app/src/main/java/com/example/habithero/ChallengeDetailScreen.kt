@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -170,6 +171,10 @@ private fun ScreenHeader(challenge: Challenge, onBackClick: () -> Unit) {
                     Icon(Icons.Default.CalendarToday, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("${challenge.durationDays} Days", color = Color.Gray)
+                    if (challenge.isCompletedToday) {
+                        Spacer(Modifier.width(8.dp))
+                        CompletedBadge()
+                    }
                 }
             }
         }
@@ -296,6 +301,31 @@ private fun AcceptChallengeButton(isAlreadyAccepted: Boolean, onAcceptChallenge:
             color = Color.Gray,
             fontSize = 12.sp,
             textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun CompletedBadge() {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(HeroGold.copy(alpha = 0.1f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.Check,
+            null,
+            tint = HeroGold,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            "Completed",
+            color = HeroGold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }

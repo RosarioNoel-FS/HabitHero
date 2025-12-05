@@ -5,14 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.habithero.model.Challenge
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
+import org.threeten.bp.ZoneId
 
-// The UI State now holds the list of all challenges, fetched from Firestore.
 data class ChallengesUiState(
     val challenges: List<Challenge> = emptyList(),
     val acceptedChallengeIds: Set<String> = emptySet(),
@@ -25,6 +28,7 @@ class ChallengesViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private lateinit var authStateListener: FirebaseAuth.AuthStateListener
+    private var habitsListener: ListenerRegistration? = null
 
     private val _uiState = MutableStateFlow(ChallengesUiState())
     val uiState: StateFlow<ChallengesUiState> = _uiState.asStateFlow()
@@ -37,10 +41,9 @@ class ChallengesViewModel : ViewModel() {
         authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
             if (user != null) {
-                // User is signed in, load all challenge data from Firestore.
-                loadAllChallengesFromFirestore(user.uid)
+                subscribeToHabitUpdates(user.uid)
             } else {
-                // User is signed out, clear the UI.
+                habitsListener?.remove()
                 _uiState.update {
                     it.copy(
                         challenges = emptyList(),
@@ -54,39 +57,62 @@ class ChallengesViewModel : ViewModel() {
         auth.addAuthStateListener(authStateListener)
     }
 
-    private fun loadAllChallengesFromFirestore(userId: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+    private fun subscribeToHabitUpdates(userId: String) {
+        _uiState.update { it.copy(isLoading = true, error = null) }
 
-            try {
-                // Step 1: Fetch all challenges from the top-level /challenges collection.
-                // This will now succeed because of the new security rule.
-                val challengesSnapshot = db.collection("challenges").get().await()
-                val allChallenges = challengesSnapshot.documents.mapNotNull { document ->
-                    document.toObject(Challenge::class.java)?.copy(id = document.id)
+        habitsListener?.remove()
+        habitsListener = db.collection("users").document(userId).collection("habits")
+            .addSnapshotListener { habitsSnapshot, error ->
+                if (error != null || habitsSnapshot == null) {
+                    _uiState.update { it.copy(error = "Failed to load habits.", isLoading = false) }
+                    return@addSnapshotListener
                 }
 
-                // Step 2: Fetch the user's accepted challenges to mark them in the UI.
-                val enrollmentsSnapshot = db.collection("users").document(userId)
-                    .collection("challengeEnrollments").get().await()
-                val acceptedIds = enrollmentsSnapshot.documents.map { it.id }.toSet()
+                viewModelScope.launch {
+                    try {
+                        val allChallenges = db.collection("challenges").get().await()
+                            .documents.mapNotNull { doc -> doc.toObject(Challenge::class.java)?.copy(id = doc.id) }
 
-                _uiState.update {
-                    it.copy(
-                        challenges = allChallenges,
-                        acceptedChallengeIds = acceptedIds,
-                        isLoading = false
-                    )
+                        val enrollments = db.collection("users").document(userId)
+                            .collection("challengeEnrollments").get().await()
+                        val acceptedIds = enrollments.documents.map { it.id }.toSet()
+
+                        val userHabits = habitsSnapshot.documents
+
+                        val challengesWithProgress = allChallenges.map { challenge ->
+                            if (acceptedIds.contains(challenge.id)) {
+                                val challengeHabits = userHabits.filter { it.getString("sourceChallengeId") == challenge.id }
+                                val allCompleted = challengeHabits.isNotEmpty() && challengeHabits.all { doc ->
+                                    doc.getTimestamp("lastCompletionDate")?.let { timestamp ->
+                                        Instant.ofEpochMilli(timestamp.toDate().time)
+                                            .atZone(ZoneId.systemDefault())
+                                            .toLocalDate() == LocalDate.now()
+                                    } ?: false
+                                }
+                                challenge.copy(isCompletedToday = allCompleted)
+                            } else {
+                                challenge
+                            }
+                        }
+
+                        _uiState.update {
+                            it.copy(
+                                challenges = challengesWithProgress,
+                                acceptedChallengeIds = acceptedIds,
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    } catch (e: Exception) {
+                        _uiState.update { it.copy(error = "Failed to load challenges: ${e.message}", isLoading = false) }
+                    }
                 }
-            } catch (e: Exception) {
-                // If this fails now, it's likely because the security rule was not deployed.
-                _uiState.update { it.copy(error = "Failed to load challenges. Did you update your Firestore security rules? Error: ${e.message}", isLoading = false) }
             }
-        }
     }
 
     override fun onCleared() {
         super.onCleared()
         auth.removeAuthStateListener(authStateListener)
+        habitsListener?.remove()
     }
 }

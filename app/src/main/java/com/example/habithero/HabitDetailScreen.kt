@@ -99,6 +99,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.example.habithero.model.Habit
+import com.example.habithero.ui.ChallengeProgressPopup
 import com.example.habithero.ui.theme.CompletedGreen
 import com.example.habithero.ui.theme.HeroGold
 import java.text.SimpleDateFormat
@@ -123,6 +124,13 @@ fun HabitDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    uiState.challengeProgress?.let {
+        ChallengeProgressPopup(
+            challengeProgress = it,
+            onDismiss = viewModel::onChallengeProgressDismissed
+        )
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -1116,7 +1124,7 @@ fun ProgressCalendarDialog(habit: Habit, onDismiss: () -> Unit) {
                     )
                     IconButton(onClick = { 
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        currentMonth = currentMonth.plusMonths(1) 
+                        currentMonth = currentMonth.plusMonths(1)
                     }) {
                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next Month", tint = Color.White)
                     }

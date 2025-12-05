@@ -174,7 +174,11 @@ private fun DefaultChallengeCardContent(challenge: Challenge, isAccepted: Boolea
                     )
                     if (isAccepted) {
                         Spacer(Modifier.width(8.dp))
-                        AcceptedBadge()
+                        if (challenge.isCompletedToday) {
+                            CompletedBadge()
+                        } else {
+                            AcceptedBadge()
+                        }
                     }
                 }
                 Row(
@@ -319,7 +323,11 @@ private fun ThemedChallengeCardContent(challenge: Challenge, isAccepted: Boolean
         // Accepted Badge at the top right
         if (isAccepted) {
             Box(modifier = Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.TopEnd) {
-                AcceptedBadge()
+                if (challenge.isCompletedToday) {
+                    CompletedBadge()
+                } else {
+                    AcceptedBadge()
+                }
             }
         }
     }
@@ -344,6 +352,31 @@ private fun AcceptedBadge() {
         Text(
             "Accepted",
             color = Color.Green,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun CompletedBadge() {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(HeroGold.copy(alpha = 0.1f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.Check,
+            null,
+            tint = HeroGold,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            "Completed",
+            color = HeroGold,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )

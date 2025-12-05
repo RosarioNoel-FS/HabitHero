@@ -1,5 +1,6 @@
 package com.example.habithero.model
 
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.PropertyName
 
 /**
@@ -17,7 +18,8 @@ data class Challenge(
     val habits: List<HabitTemplate> = emptyList(),
     val about: String = "",
     val whyItMatters: String = "",
-    val positiveEffects: List<String> = emptyList()
+    val positiveEffects: List<String> = emptyList(),
+    @get:Exclude @set:Exclude var isCompletedToday: Boolean = false
 )
 
 /**

@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.habithero.data.FirebaseHelper
+import com.example.habithero.data.HabitWithCompletion
+import com.example.habithero.model.ChallengeProgress
 import com.example.habithero.model.Habit
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +23,8 @@ data class DetailUiState(
     val error: String? = null,
     val isDeleted: Boolean = false,
     val confettiEventId: String? = null,
-    val requiresExactAlarmPermission: Boolean = false
+    val requiresExactAlarmPermission: Boolean = false,
+    val challengeProgress: ChallengeProgress? = null
 )
 
 class DetailViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
@@ -37,6 +40,10 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
 
     init {
         loadHabitDetails()
+    }
+
+    fun onChallengeProgressDismissed() {
+        _uiState.update { it.copy(challengeProgress = null) }
     }
 
     fun refresh() {
@@ -193,10 +200,33 @@ class DetailViewModel(application: Application, savedStateHandle: SavedStateHand
             try {
                 firebaseHelper.completeHabitAndUpdateStats(userId, habitId)
                 loadHabitDetails(isCompletion = true) // Reload data and trigger confetti
+
+                if (currentHabit.sourceChallengeId != null) {
+                    showChallengeProgress(userId, currentHabit.sourceChallengeId!!)
+                }
+
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to complete habit.") }
+                _uiState.update { it.copy(error = "Failed to complete habit: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isSaving = false) }
+            }
+        }
+    }
+
+    private suspend fun showChallengeProgress(userId: String, challengeId: String) {
+        val (challenge, habits) = firebaseHelper.getChallengeProgress(userId, challengeId)
+        if (challenge != null) {
+            val habitsWithCompletion = habits.map { habit ->
+                HabitWithCompletion(habit, habit.isCompletedToday)
+            }
+            _uiState.update {
+                it.copy(
+                    challengeProgress = ChallengeProgress(
+                        challengeName = challenge.title,
+                        habits = habitsWithCompletion,
+                        newlyCompletedHabitId = habitId
+                    )
+                )
             }
         }
     }

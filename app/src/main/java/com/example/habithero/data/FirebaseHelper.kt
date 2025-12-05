@@ -2,6 +2,7 @@ package com.example.habithero.data
 
 import android.util.Log
 import com.example.habithero.model.Category
+import com.example.habithero.model.Challenge
 import com.example.habithero.model.Habit
 import com.example.habithero.model.UserStats
 import com.google.firebase.Timestamp
@@ -29,6 +30,27 @@ class FirebaseHelper {
             }
         } catch (e: Exception) {
             Log.e("FirebaseHelper", "Error initializing user stats", e)
+        }
+    }
+
+    suspend fun getChallengeProgress(userId: String, challengeId: String): Pair<Challenge?, List<Habit>> {
+        val challengeRef = db.collection("challenges").document(challengeId)
+        val challenge = challengeRef.get().await().toObject(Challenge::class.java)
+
+        val habits = fetchUserHabitsByChallenge(userId, challengeId)
+        return Pair(challenge, habits)
+    }
+
+    private suspend fun fetchUserHabitsByChallenge(userId: String, challengeId: String): List<Habit> {
+        return try {
+            db.collection("users").document(userId).collection("habits")
+                .whereEqualTo("sourceChallengeId", challengeId)
+                .get()
+                .await()
+                .mapNotNull { document -> documentToHabit(document) }
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching habits for challenge", e)
+            emptyList()
         }
     }
 
