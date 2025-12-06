@@ -7,6 +7,7 @@ import com.example.habithero.model.Challenge
 import com.example.habithero.model.ChallengeEnrollment
 import com.example.habithero.model.Habit
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,6 +144,9 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
                 db.runTransaction { transaction ->
                     val enrollmentRef = db.collection("users").document(userId).collection("challengeEnrollments").document(challengeId)
                     transaction.set(enrollmentRef, ChallengeEnrollment(challengeId = challengeId, startDate = Date()))
+                    
+                    val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")
+                    transaction.update(statsRef, "activeHabits", FieldValue.increment(challenge.habits.size.toLong()))
 
                     challenge.habits.forEach { habitTemplate ->
                         val deterministicId = "$userId:$challengeId:${habitTemplate.id}"
@@ -186,6 +190,9 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
                 val habitsToCreate = challenge.habits.filter { missingIds.contains(it.id) }
 
                 db.runBatch { batch ->
+                    val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")
+                    batch.update(statsRef, "activeHabits", FieldValue.increment(habitsToCreate.size.toLong()))
+
                      habitsToCreate.forEach { habitTemplate ->
                         val deterministicId = "$userId:$challengeId:${habitTemplate.id}"
                         val habitRef = db.collection("users").document(userId).collection("habits").document(deterministicId)

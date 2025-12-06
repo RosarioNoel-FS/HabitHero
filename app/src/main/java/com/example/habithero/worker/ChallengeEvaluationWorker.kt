@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.example.habithero.ChallengeEventManager
 import com.example.habithero.model.ChallengeEnrollment
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
@@ -59,8 +60,10 @@ class ChallengeEvaluationWorker(
                         challengeEventManager.recordLifeLost(challengeId)
                     } else {
                         // Ran out of lives, fail the challenge and delete the habits in a batch write
-                        db.runBatch {
-                            batch ->
+                        db.runBatch { batch ->
+                            val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")
+                            batch.update(statsRef, "activeHabits", FieldValue.increment(-habits.size().toLong()))
+
                             for(habitDoc in habits.documents) {
                                 batch.delete(habitDoc.reference)
                             }
