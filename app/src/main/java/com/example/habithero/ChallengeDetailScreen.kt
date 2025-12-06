@@ -32,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -47,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -89,6 +91,10 @@ fun ChallengeDetailScreen(
             ) {
                 ScreenHeader(challenge = challenge, onBackClick = onBackClick)
 
+                if (uiState.isAlreadyAccepted) {
+                    ProgressCard(challenge = challenge)
+                }
+
                 if (uiState.missingHabitIds.isNotEmpty() && showMissingHabitsBanner) {
                     MissingHabitsBanner(
                         missingCount = uiState.missingHabitIds.size,
@@ -109,6 +115,43 @@ fun ChallengeDetailScreen(
                     onAcceptChallenge = { viewModel.acceptChallenge() }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ProgressCard(challenge: Challenge) {
+    val daysRemaining = challenge.daysTotal - challenge.currentDay
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, HeroGold.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Day ${challenge.currentDay} of ${challenge.daysTotal}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    (1..3).forEach { i ->
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_heart),
+                            contentDescription = "Life",
+                            tint = if (i <= challenge.lives) Color.Red else Color.Gray.copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("$daysRemaining days left", color = Color.Gray)
+            Spacer(Modifier.height(16.dp))
+            LinearProgressIndicator(
+                progress = { challenge.progressPercent },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                color = HeroGold,
+                trackColor = Color.Gray.copy(alpha = 0.3f)
+            )
         }
     }
 }

@@ -10,8 +10,9 @@ data class ChallengeEnrollment(
     val startDate: Date? = null,
     val successDays: Int = 0,
     val missedDays: Int = 0,
-    val lastEvaluatedDate: Date? = null
+    val lastEvaluatedDate: Date? = null,
+    val lives: Int = 3 // Add the lives property with a default value
 ) {
     // No-argument constructor for Firestore
-    constructor() : this("", "ACTIVE", null, 0, 0, null)
+    constructor() : this("", "ACTIVE", null, 0, 0, null, 3)
 }

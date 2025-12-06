@@ -19,7 +19,11 @@ data class Challenge(
     val about: String = "",
     val whyItMatters: String = "",
     val positiveEffects: List<String> = emptyList(),
-    @get:Exclude @set:Exclude var isCompletedToday: Boolean = false
+    @get:Exclude @set:Exclude var isCompletedToday: Boolean = false,
+    @get:Exclude @set:Exclude var currentDay: Int = 0,
+    @get:Exclude @set:Exclude var daysTotal: Int = 0,
+    @get:Exclude @set:Exclude var progressPercent: Float = 0f,
+    @get:Exclude @set:Exclude var lives: Int = 3
 )
 
 /**

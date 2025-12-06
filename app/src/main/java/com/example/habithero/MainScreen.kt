@@ -166,7 +166,8 @@ fun MainScreen() {
                 val uiState by viewModel.uiState.collectAsState()
                 LaunchedEffect(uiState.challengeAccepted) {
                     if (uiState.challengeAccepted) {
-                         navController.navigate(Screen.Home.route) {
+                        viewModel.onChallengeAcceptedNavigated()
+                        navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     }

@@ -3,6 +3,7 @@ package com.example.habithero.data
 import android.util.Log
 import com.example.habithero.model.Category
 import com.example.habithero.model.Challenge
+import com.example.habithero.model.ChallengeEnrollment
 import com.example.habithero.model.Habit
 import com.example.habithero.model.UserStats
 import com.google.firebase.Timestamp
@@ -20,6 +21,24 @@ import java.util.Locale
 class FirebaseHelper {
 
     private val db = FirebaseFirestore.getInstance()
+
+    suspend fun fetchChallenge(challengeId: String): Challenge? {
+        return try {
+            db.collection("challenges").document(challengeId).get().await().toObject(Challenge::class.java)
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching challenge", e)
+            null
+        }
+    }
+
+    suspend fun fetchChallengeEnrollment(userId: String, challengeId: String): ChallengeEnrollment? {
+        return try {
+            db.collection("users").document(userId).collection("challengeEnrollments").document(challengeId).get().await().toObject(ChallengeEnrollment::class.java)
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error fetching challenge enrollment", e)
+            null
+        }
+    }
 
     suspend fun initializeUserStats(userId: String) {
         val statsRef = db.collection("users").document(userId).collection("stats").document("user_stats")

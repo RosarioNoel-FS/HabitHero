@@ -15,12 +15,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 data class ChallengeDetailUiState(
     val isLoading: Boolean = false,
     val challenge: Challenge? = null,
     val error: String? = null,
-    val challengeAccepted: Boolean = false,
+    val challengeAccepted: Boolean = false, // Re-added for one-time navigation event
     val isAlreadyAccepted: Boolean = false,
     val missingHabitIds: List<String> = emptyList()
 )
@@ -68,14 +69,16 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
                             return@addSnapshotListener
                         }
 
-                        val isAccepted = enrollmentSnapshot != null && enrollmentSnapshot.exists()
+                        val enrollment = enrollmentSnapshot?.toObject(ChallengeEnrollment::class.java)
+                        val isAccepted = enrollment != null
+
+                        _uiState.update { it.copy(isAlreadyAccepted = isAccepted) }
+
                         if (isAccepted) {
-                            // If accepted, then listen for habit changes
-                            listenToHabitUpdates(userId, challenge)
+                            listenToHabitUpdates(userId, challenge, enrollment)
                         } else {
-                            // If not accepted, stop listening to habits and update UI
                             habitsListener?.remove()
-                            _uiState.update { it.copy(isLoading = false, challenge = challenge, isAlreadyAccepted = false) }
+                            _uiState.update { it.copy(isLoading = false, challenge = challenge) }
                         }
                     }
             } catch (e: Exception) {
@@ -84,7 +87,7 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
         }
     }
 
-    private fun listenToHabitUpdates(userId: String, challenge: Challenge) {
+    private fun listenToHabitUpdates(userId: String, challenge: Challenge, enrollment: ChallengeEnrollment?) {
         habitsListener?.remove()
         habitsListener = db.collection("users").document(userId).collection("habits")
             .whereEqualTo("sourceChallengeId", challengeId)
@@ -94,28 +97,38 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
                     return@addSnapshotListener
                 }
 
-                viewModelScope.launch {
-                    val userHabits = habitsSnapshot.toObjects(Habit::class.java)
-                    val allCompleted = userHabits.isNotEmpty() && userHabits.all { habit ->
-                        habit.lastCompletionDate?.let {
-                            org.threeten.bp.Instant.ofEpochMilli(it.time)
-                                .atZone(org.threeten.bp.ZoneId.systemDefault()).toLocalDate() == org.threeten.bp.LocalDate.now()
-                        } ?: false
-                    }
+                val userHabits = habitsSnapshot.toObjects(Habit::class.java)
+                val allCompleted = userHabits.isNotEmpty() && userHabits.all { habit ->
+                    habit.lastCompletionDate?.let {
+                        org.threeten.bp.Instant.ofEpochMilli(it.time)
+                            .atZone(org.threeten.bp.ZoneId.systemDefault()).toLocalDate() == org.threeten.bp.LocalDate.now()
+                    } ?: false
+                }
 
-                    val existingTemplateIds = userHabits.map { it.sourceTemplateId }.toSet()
-                    val missingTemplates = challenge.habits.filter { !existingTemplateIds.contains(it.id) }
+                val existingTemplateIds = userHabits.map { it.sourceTemplateId }.toSet()
+                val missingTemplates = challenge.habits.filter { !existingTemplateIds.contains(it.id) }
+                
+                val currentDay = if (enrollment?.startDate != null) {
+                    val diff = System.currentTimeMillis() - enrollment.startDate!!.time
+                    (diff / (1000 * 60 * 60 * 24)).toInt() + 1
+                } else {
+                    1
+                }
 
-                    val updatedChallenge = challenge.copy(isCompletedToday = allCompleted)
+                val updatedChallenge = challenge.copy(
+                    isCompletedToday = allCompleted,
+                    currentDay = currentDay,
+                    daysTotal = challenge.durationDays,
+                    progressPercent = if (challenge.durationDays > 0) currentDay.toFloat() / challenge.durationDays else 0f,
+                    lives = enrollment?.lives ?: 3
+                )
 
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            isLoading = false,
-                            challenge = updatedChallenge,
-                            isAlreadyAccepted = true, // We are in this listener, so it must be accepted
-                            missingHabitIds = missingTemplates.map { it.id }
-                        )
-                    }
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        challenge = updatedChallenge,
+                        missingHabitIds = missingTemplates.map { it.id }
+                    )
                 }
             }
     }
@@ -123,19 +136,41 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
     fun acceptChallenge() {
         viewModelScope.launch {
             if (userId == null) return@launch
+            val challenge = _uiState.value.challenge ?: return@launch
 
             _uiState.update { it.copy(isLoading = true) }
             try {
-                db.collection("users").document(userId).collection("challengeEnrollments").document(challengeId)
-                    .set(ChallengeEnrollment(challengeId = challengeId)).await()
+                db.runTransaction { transaction ->
+                    val enrollmentRef = db.collection("users").document(userId).collection("challengeEnrollments").document(challengeId)
+                    transaction.set(enrollmentRef, ChallengeEnrollment(challengeId = challengeId, startDate = Date()))
 
-                // The listener will handle the UI update automatically
-                 _uiState.update { it.copy(isLoading = false, challengeAccepted = true) }
+                    challenge.habits.forEach { habitTemplate ->
+                        val deterministicId = "$userId:$challengeId:${habitTemplate.id}"
+                        val habitRef = db.collection("users").document(userId).collection("habits").document(deterministicId)
+                        val newHabit = Habit(
+                            name = habitTemplate.name,
+                            category = habitTemplate.category,
+                            emoji = habitTemplate.emoji,
+                            completionHour = habitTemplate.completionHour,
+                            completionMinute = habitTemplate.completionMinute,
+                            iconUrl = habitTemplate.iconUrl,
+                            sourceChallengeId = challengeId,
+                            sourceTemplateId = habitTemplate.id
+                        ).apply { id = deterministicId }
+                        transaction.set(habitRef, newHabit)
+                    }
+                }.await()
+
+                _uiState.update { it.copy(isLoading = false, challengeAccepted = true) }
 
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }
+    }
+
+    fun onChallengeAcceptedNavigated() {
+        _uiState.update { it.copy(challengeAccepted = false) }
     }
 
     fun addMissingHabitsForChallenge() {
@@ -169,7 +204,6 @@ class ChallengeDetailViewModel(savedStateHandle: SavedStateHandle) : ViewModel()
                         batch.set(habitRef, habit)
                     }
                 }.await()
-                // The listener will auto-update the UI, just turn off loading state
                 _uiState.update { it.copy(isLoading = false) }
 
             } catch (e: Exception) {

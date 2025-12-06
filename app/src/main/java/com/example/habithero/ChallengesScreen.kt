@@ -30,6 +30,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -191,7 +192,11 @@ private fun DefaultChallengeCardContent(challenge: Challenge, isAccepted: Boolea
                         tint = Color.Gray,
                         modifier = Modifier.size(16.dp)
                     )
-                    Text("${challenge.durationDays} Days", color = Color.Gray)
+                    if (isAccepted) {
+                        Text("Day ${challenge.currentDay} of ${challenge.daysTotal}", color = Color.Gray)
+                    } else {
+                        Text("${challenge.durationDays} Days", color = Color.Gray)
+                    }
                 }
             }
         }
@@ -217,10 +222,26 @@ private fun DefaultChallengeCardContent(challenge: Challenge, isAccepted: Boolea
                 )
                 Text("${challenge.habits.size} Habits", color = Color.Gray)
             }
+            if (isAccepted) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(painterResource(id = R.drawable.ic_heart), contentDescription = "Lives", tint = Color.Red, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(challenge.lives.toString(), color = Color.Gray)
+                }
+            }
             Text(
                 text = if (isAccepted) "View Details →" else "Start Challenge →",
                 color = HeroGold,
                 fontWeight = FontWeight.Bold
+            )
+        }
+        if (isAccepted) {
+            Spacer(modifier = Modifier.height(16.dp))
+            LinearProgressIndicator(
+                progress = { challenge.progressPercent },
+                modifier = Modifier.fillMaxWidth(),
+                color = HeroGold,
+                trackColor = Color.Gray.copy(alpha = 0.3f)
             )
         }
     }
@@ -271,52 +292,77 @@ private fun ThemedChallengeCardContent(challenge: Challenge, isAccepted: Boolean
             Spacer(Modifier.weight(1f))
 
             // Bottom Row (Stats and Link)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Habit Count
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
+            Column {
+                if (isAccepted) {
+                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Day ${challenge.currentDay} of ${challenge.daysTotal}", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                        Spacer(Modifier.width(16.dp))
+                        Icon(painterResource(id = R.drawable.ic_heart), contentDescription = "Lives", tint = Color.Red, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(challenge.lives.toString(), color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = "View Details →",
+                            color = HeroGold,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { challenge.progressPercent },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = HeroGold,
+                        trackColor = Color.Gray.copy(alpha = 0.3f)
                     )
-                    Text(
-                        text = "${challenge.habits.size} Habits",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
+                } else {
+                     Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Habit Count
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                null,
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "${challenge.habits.size} Habits",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 14.sp
+                            )
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        // Duration
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                null,
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "${challenge.durationDays} Days",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 14.sp
+                            )
+                        }
+                        // This spacer pushes the text to the end
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = "Start Challenge →",
+                            color = HeroGold,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-                Spacer(Modifier.width(16.dp))
-                // Duration
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "${challenge.durationDays} Days",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                }
-                // This spacer pushes the text to the end
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = if (isAccepted) "View Details →" else "Start Challenge →",
-                    color = HeroGold,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
 

@@ -78,6 +78,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.habithero.model.Habit
+import com.example.habithero.ui.dialogs.LifeLostDialog
 import com.example.habithero.ui.theme.HeroGold
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -123,34 +124,32 @@ fun HomeScreen(
     }
 
     HomeScreenContent(
-        userName = uiState.userName,
-        habits = uiState.habits,
-        isLoading = uiState.isLoading,
+        uiState = uiState,
         onSettingsClick = onSettingsClick,
         onFabClick = onFabClick,
         onHabitClick = onHabitClick,
-        onDeleteHabit = { viewModel.deleteHabit(it) } // Pass the delete function
+        onDeleteHabit = { viewModel.deleteHabit(it) },
+        onLifeLostDialogDismissed = { viewModel.onLifeLostDialogDismissed() }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
-    userName: String,
-    habits: List<Habit>,
-    isLoading: Boolean,
+    uiState: HomeUiState,
     onSettingsClick: () -> Unit,
     onFabClick: () -> Unit,
     onHabitClick: (Habit) -> Unit,
-    onDeleteHabit: (String) -> Unit
+    onDeleteHabit: (String) -> Unit,
+    onLifeLostDialogDismissed: () -> Unit
 ) {
-    val groupedHabits = remember(habits) {
-        habits.groupBy { getHabitTimeOfDay(it) }
+    val groupedHabits = remember(uiState.habits) {
+        uiState.habits.groupBy { getHabitTimeOfDay(it) }
             .mapValues { (_, habits) ->
                 habits.sortedWith(compareBy({ it.completionHour }, { it.completionMinute }))
             }
     }
-    val isFirstTime = habits.isEmpty()
+    val isFirstTime = uiState.habits.isEmpty()
     val haptics = LocalHapticFeedback.current
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
 
@@ -162,6 +161,15 @@ fun HomeScreenContent(
                 habitToDelete = null // Dismiss dialog
             },
             onDismiss = { habitToDelete = null } // Dismiss dialog
+        )
+    }
+
+    // Show the life lost dialog when an event is available
+    uiState.lifeLostEvent?.let {
+        LifeLostDialog(
+            challengeName = it.challengeName,
+            livesRemaining = it.livesRemaining,
+            onDismiss = onLifeLostDialogDismissed
         )
     }
 
@@ -215,9 +223,9 @@ fun HomeScreenContent(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            WelcomeHeader(name = userName, isFirstTime = isFirstTime, onSettingsClick = onSettingsClick)
+            WelcomeHeader(name = uiState.userName, isFirstTime = isFirstTime, onSettingsClick = onSettingsClick)
 
-            if (isLoading) {
+            if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -225,7 +233,7 @@ fun HomeScreenContent(
                 EmptyState()
             } else {
                 Text(
-                    text = "Your Active Habits (${habits.size})",
+                    text = "Your Active Habits (${uiState.habits.size})",
                     style = typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
